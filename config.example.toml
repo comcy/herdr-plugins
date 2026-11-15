@@ -1,0 +1,18 @@
+# Sample keybindings for ~/.config/herdr/config.toml, then: herdr server reload-config
+[[keys.command]]
+key = "prefix+l"
+type = "plugin_action"
+command = "hp.claude-layout.apply"
+description = "claude layout"
+
+[[keys.command]]
+key = "prefix+a"
+type = "plugin_action"
+command = "hp.gh-watch.runs"
+description = "gh runs"
+
+[[keys.command]]
+key = "prefix+p"
+type = "plugin_action"
+command = "hp.gh-watch.prs"
+description = "gh prs"

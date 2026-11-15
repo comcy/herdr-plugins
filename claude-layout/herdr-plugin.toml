@@ -1,0 +1,12 @@
+id = "hp.claude-layout"
+name = "Claude Layout"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "Split current pane into shell | claude + test shell"
+platforms = ["linux", "macos"]
+
+[[actions]]
+id = "apply"
+title = "Claude dev layout"
+contexts = ["workspace"]
+command = ["bash", "apply.sh"]
