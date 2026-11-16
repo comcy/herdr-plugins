@@ -1,0 +1,34 @@
+id = "hp.ado-watch"
+name = "ADO Watch"
+version = "0.1.0"
+min_herdr_version = "0.9.0"
+description = "Live Azure DevOps pipeline runs and open PRs with spinner"
+platforms = ["linux", "macos"]
+
+[[panes]]
+id = "runs"
+title = "Pipelines"
+placement = "popup"
+width = "80%"
+height = "70%"
+command = ["bash", "watch.sh", "runs"]
+
+[[panes]]
+id = "prs"
+title = "PRs"
+placement = "popup"
+width = "80%"
+height = "70%"
+command = ["bash", "watch.sh", "prs"]
+
+[[actions]]
+id = "runs"
+title = "Pipeline runs"
+contexts = ["workspace"]
+command = ["bash", "open.sh", "runs"]
+
+[[actions]]
+id = "prs"
+title = "Open PRs"
+contexts = ["workspace"]
+command = ["bash", "open.sh", "prs"]
