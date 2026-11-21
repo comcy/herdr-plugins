@@ -24,7 +24,10 @@ export default class GhWatch extends View {
     }
     this.load(cx);
     cx.timer.every(3000, (cx) => {
-      if (Date.now() - this.last < this.every || (this.panel && !this.visible())) return;
+      if (this.panel && !this.visible()) return;
+      // Panel: reload at once when the focused pane / space moved to another folder.
+      const moved = this.panel && JSON.stringify(this.where()) !== this.loc;
+      if (!moved && Date.now() - this.last < this.every) return;
       this.load(cx);
     });
   }
@@ -40,6 +43,7 @@ export default class GhWatch extends View {
   load(cx) {
     this.last = Date.now();
     const at = this.panel ? this.where() : this.at;   // panel follows focus / space switches
+    this.loc = JSON.stringify(at);
     cx.spawn(async (cx) => {
       // Each list fails on its own (e.g. issues disabled on the repo) and only shows on its tab.
       await Promise.all([["prs", PR], ["runs", RUN], ["issues", ISSUE]].map(async ([k, a]) => {
