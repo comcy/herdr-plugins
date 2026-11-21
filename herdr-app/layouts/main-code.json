@@ -46,6 +46,17 @@
                 "weight": 1
               },
               "min": 90
+            },
+            {
+              "id": "servers",
+              "type": "block",
+              "content": {
+                "mod": "servers-code"
+              },
+              "size": {
+                "weight": 0.4
+              },
+              "min": 90
             }
           ]
         },
