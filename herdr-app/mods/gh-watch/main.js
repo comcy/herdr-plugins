@@ -1,32 +1,54 @@
-// GitHub watch: open PRs and Actions runs of the focused pane's repo, refreshed every 5 s.
-// Tab or ←/→ switches PRs/Runs, click opens the item in the browser, Esc closes. Needs `gh` (logged in).
+// GitHub watch: open PRs, Actions runs and issues of the focused pane's repo. Needs `gh` (logged in).
+// Two modes, same file: dialog (`mod.open:gh-watch`, refresh 5 s, Tab or ←/→ switches, Esc closes)
+// and right panel (block `gh` in layout main-code, refresh 15 s, only while shown).
+// Click opens the item in the browser.
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { exec, spaces, panes, theme, props, closeOverlay } from "herdr";
+import { exec, spaces, panes, theme, props, closeOverlay, layout } from "herdr";
 
 const PR = ["pr", "list", "--limit", "15", "--json", "number,title,author,isDraft,reviewDecision,statusCheckRollup,url"];
 const RUN = ["run", "list", "--limit", "10", "--json", "databaseId,workflowName,displayTitle,headBranch,status,conclusion,url"];
+const ISSUE = ["issue", "list", "--limit", "15", "--json", "number,title,author,labels,url"];
+const TABS = [["prs", "PRs"], ["runs", "Runs"], ["issues", "Issues"]];
+const find = (n, id) => (n?.id === id ? n : (n?.children ?? []).map((c) => find(c, id)).find(Boolean));
 const SPIN = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 export default class GhWatch extends View {
   init(_p, cx) {
-    this.tab = "prs"; this.data = { prs: null, runs: null }; this.error = null;
-    this.handle = cx.focus_handle(); this.handle.focus();
-    const sp = spaces().find((s) => s.active);
-    this.at = { cwd: panes().find((p) => p.focused)?.cwd ?? sp?.folder, on: sp?.machine };
+    this.panel = !props()?.overlay;
+    this.tab = "prs"; this.data = { prs: null, runs: null, issues: null }; this.errors = {}; this.last = 0;
+    this.every = this.panel ? 15000 : 5000;
+    if (!this.panel) {
+      this.handle = cx.focus_handle(); this.handle.focus();
+      this.at = this.where();   // dialog: the repo that was focused when it opened
+    }
     this.load(cx);
-    cx.timer.every(5000, (cx) => this.load(cx));
+    cx.timer.every(3000, (cx) => {
+      if (Date.now() - this.last < this.every || (this.panel && !this.visible())) return;
+      this.load(cx);
+    });
+  }
+  // Panel: only poll while the `gh` child of the right panel is the shown one (hidden mods keep their timers).
+  visible() {
+    const root = layout(), panel = find(root, "panel"), body = find(root, "panel-body");
+    return Boolean(panel && !panel.hidden && body?.active === "gh");
+  }
+  where() {
+    const sp = spaces().find((s) => s.active);
+    return { cwd: panes().find((p) => p.focused)?.cwd ?? sp?.folder, on: sp?.machine };
   }
   load(cx) {
+    this.last = Date.now();
+    const at = this.panel ? this.where() : this.at;   // panel follows focus / space switches
     cx.spawn(async (cx) => {
-      try {
-        const [prs, runs] = await Promise.all([PR, RUN].map((a) => exec("gh", a, this.at)));
-        for (const [k, r] of [["prs", prs], ["runs", runs]]) {
+      // Each list fails on its own (e.g. issues disabled on the repo) and only shows on its tab.
+      await Promise.all([["prs", PR], ["runs", RUN], ["issues", ISSUE]].map(async ([k, a]) => {
+        try {
+          const r = await exec("gh", a, at);
           if (r.code !== 0) throw new Error(r.stderr.trim() || "gh failed");
-          this.data[k] = JSON.parse(r.stdout);
-        }
-        this.error = null;
-      } catch (e) { this.error = String(e.message ?? e); }
+          this.data[k] = JSON.parse(r.stdout); this.errors[k] = null;
+        } catch (e) { this.errors[k] = String(e.message ?? e); }
+      }));
       cx.notify();
     });
   }
@@ -59,22 +81,31 @@ export default class GhWatch extends View {
   runRow(r, t) {
     return this.row(`run-${r.databaseId}`, r.url, this.mark(r.status, r.conclusion, t), `${r.workflowName}  ${r.displayTitle}`, r.headBranch, t);
   }
+  issueRow(i, t) {
+    const labels = (i.labels ?? []).map((l) => l.name).join(", ");
+    return this.row(`issue-${i.number}`, i.url, div().w(14).text_color(t.ansi2).child("○"), `#${i.number}  ${i.title}`, labels || (i.author?.login ?? ""), t);
+  }
   render() {
-    const t = theme(), rows = this.data[this.tab];
-    const tab = (id, label) => div().id(`tab-${id}`).px(10).py(4).rounded(6).cursor_pointer()
+    const t = theme(), rows = this.data[this.tab], error = this.errors[this.tab];
+    const rowFor = (x) => (this.tab === "prs" ? this.prRow(x, t) : this.tab === "runs" ? this.runRow(x, t) : this.issueRow(x, t));
+    const tab = ([id, label]) => div().id(`tab-${id}`).px(10).py(4).rounded(6).cursor_pointer()
       .text_color(this.tab === id ? t.foreground : t.muted).when(this.tab === id, (el) => el.bg(t.selected))
-      .on_click((_e, cx) => { this.tab = id; cx.notify(); }).child(label);
-    return v_flex().id("gh-watch").size_full().min_h(0).bg(t.popover).p(8).gap(6).text_size(13).track_focus(this.handle)
-      .on_key_down((e, cx) => {
-        if (e.key === "escape") closeOverlay(props().overlay);
-        else if (e.key === "tab" || e.key === "left" || e.key === "right") { this.tab = this.tab === "prs" ? "runs" : "prs"; cx.notify(); }
-      })
-      .child(h_flex().gap(6).items_center().child(tab("prs", `Pull requests${this.data.prs ? ` (${this.data.prs.length})` : ""}`)).child(tab("runs", "Actions runs"))
-        .child(div().flex_1()).child(div().text_size(11).text_color(t.dim).child("click opens · Tab switches · Esc closes")))
+      .on_click((_e, cx) => { this.tab = id; cx.notify(); })
+      .child(`${label}${this.data[id] && id !== "runs" ? ` (${this.data[id].length})` : ""}`);
+    const root = v_flex().id("gh-watch").size_full().min_h(0).bg(this.panel ? t.chrome : t.popover).p(8).gap(6).text_size(13)
+      .child(h_flex().gap(6).items_center().children(TABS.map(tab))
+        .when(!this.panel, (el) => el.child(div().flex_1()).child(div().text_size(11).text_color(t.dim).child("click opens · Tab switches · Esc closes"))))
       .child(v_flex().id("gh-rows").flex_1().min_h(0).overflow_y_scrollbar().gap(2)
-        .when(Boolean(this.error), (el) => el.child(div().p(10).text_color(t.ansi1).child(this.error)))
-        .when(!this.error && !rows, (el) => el.child(div().p(10).text_color(t.dim).child("loading…")))
-        .when(!this.error && rows?.length === 0, (el) => el.child(div().p(10).text_color(t.dim).child("nothing here")))
-        .when(!this.error && Boolean(rows), (el) => el.children((rows ?? []).map((x) => (this.tab === "prs" ? this.prRow(x, t) : this.runRow(x, t))))));
+        .when(Boolean(error), (el) => el.child(div().p(10).text_color(t.ansi1).child(error)))
+        .when(!error && !rows, (el) => el.child(div().p(10).text_color(t.dim).child("loading…")))
+        .when(!error && rows?.length === 0, (el) => el.child(div().p(10).text_color(t.dim).child("nothing here")))
+        .when(!error && Boolean(rows), (el) => el.children((rows ?? []).map(rowFor))));
+    if (this.panel) return root;
+    const ids = TABS.map(([id]) => id);
+    return root.track_focus(this.handle).on_key_down((e, cx) => {
+      if (e.key === "escape") closeOverlay(props().overlay);
+      else if (e.key === "tab" || e.key === "right") { this.tab = ids[(ids.indexOf(this.tab) + 1) % ids.length]; cx.notify(); }
+      else if (e.key === "left") { this.tab = ids[(ids.indexOf(this.tab) + ids.length - 1) % ids.length]; cx.notify(); }
+    });
   }
 }

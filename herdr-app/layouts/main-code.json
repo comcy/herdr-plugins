@@ -140,6 +140,13 @@
                       "content": {
                         "mod": "changes"
                       }
+                    },
+                    {
+                      "id": "gh",
+                      "type": "block",
+                      "content": {
+                        "mod": "gh-watch"
+                      }
                     }
                   ],
                   "active": "files"

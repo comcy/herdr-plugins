@@ -10,9 +10,9 @@ Herdr's built-in mods/layouts are replaced on every start, so these are **clones
 | `mods/spaces-code` | `spaces` + worktrees grouped under their repo (also bare repos: `.bare/` + worktrees), header = repo folder, row = folder + branch |
 | `mods/tabs-code` | `tabs`, "+" opens `new-menu-code` |
 | `mods/new-menu-code` | `new-menu` + entries: GitHub PRs & runs, Browser (carbonyl), Neovim tab, VS Code (`code .`) |
-| `mods/gh-watch` | Dialog: open PRs + Actions runs of the focused pane's repo (`gh`), spinner for running, click opens URL |
+| `mods/gh-watch` | Open PRs, Actions runs and issues of the focused pane's repo (`gh`), spinner for running, click opens URL. Two modes, one file: dialog (`ctrl-shift-g`) and a **GitHub** panel on the right next to Files/Changes (button in the tab bar; polls every 15 s, only while shown) |
 
 Needs: `gh` (authenticated), `nvim`, `code`, `docker` (carbonyl: `fathyb/carbonyl`) for the respective menu entries.
-Key for gh-watch (add to `~/.config/herdr-app/keys.json` → `global`): `"ctrl-shift-g": "mod.open:gh-watch"`.
+Panel: click **GitHub** in the tab bar (layout `main-code`, child `gh` of `panel-body`; button comes from `tabs-code`). Key for the dialog of gh-watch (add to `~/.config/herdr-app/keys.json` → `global`): `"ctrl-shift-g": "mod.open:gh-watch"`.
 Optional example layouts `code`, `pasture` (+ mods `vsc`, `pasture`): github.com/herdrdev/herdr-layout-examples.
 If the layout switches back to `main` after a restart: `herdr-app do layout.switch --name main-code`; if the sidebar is hidden: `herdr-app do layout.show --id sidebar`.
