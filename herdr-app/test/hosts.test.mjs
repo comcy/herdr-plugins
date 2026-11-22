@@ -26,3 +26,11 @@ assert.deepEqual(parseHosts(cfg), [
 ]);
 assert.deepEqual(parseHosts(""), []);
 console.log("ok");
+import { parseDest, sshArgv, hostBlock } from "../mods/servers-code/hosts.js";
+assert.deepEqual(parseDest(" root@10.0.0.5:2222 "), { user: "root", host: "10.0.0.5", port: "2222" });
+assert.deepEqual(parseDest("nas.lan"), { user: "", host: "nas.lan", port: "" });
+assert.equal(parseDest("a b"), null); assert.equal(parseDest(""), null);
+assert.deepEqual(sshArgv(parseDest("me@h:22")), ["ssh", "-p", "22", "me@h"]);
+assert.equal(hostBlock("h", parseDest("me@h:22")), "Host h\n  HostName h\n  User me\n  Port 22\n");
+assert.deepEqual(parseHosts(hostBlock("x", parseDest("u@1.2.3.4"))), [{ name: "x", host: "1.2.3.4", user: "u" }]);
+console.log("ok dest");

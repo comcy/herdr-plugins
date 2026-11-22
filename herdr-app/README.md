@@ -20,7 +20,10 @@ If the layout switches back to `main` after a restart: `herdr-app do layout.swit
 
 ## Servers (`servers-code`)
 
-A list of your SSH hosts in the left sidebar, below Spaces and Agents (block `servers` in `layouts/main-code.json`; its height is `weight` 0.4, change it there).
+A list of your SSH hosts in the left sidebar, below Spaces and Agents (block `servers` in `layouts/main-code.json`; its height is `weight` 0.4, change it there). Same look as Agents: separator line on top, header with title and **+**.
+
+- **Collapse:** click the title (`▾`/`▸`) → the block shrinks to its header (`layout.resize` to 41 px, state remembered in shared `servers.collapsed`, reapplied at start).
+- **+ New connection:** popup with *Address* (`[user@]host[:port]`) and *Name*. **Connect** = one-off `ssh` (space named after the name or host, nothing saved). **Save & connect** = appends a `Host <name>` block (`HostName`, `User`, `Port`) to `~/.ssh/config` (creates `~/.ssh` / the file if missing; refuses a name that exists), then connects with `ssh <name>`. IPv6 addresses and `-i` keys: write the Host block by hand.
 
 - **Source:** `~/.ssh/config`, re-read every 30 s. Each `Host` name counts, patterns with `*`, `?` or `!` are skipped. The row shows `User@HostName` from the first matching `HostName` / `User` line. `Include` and `Match` are not followed. Add a server = add a `Host` block, nothing else to maintain:
 
@@ -29,9 +32,9 @@ A list of your SSH hosts in the left sidebar, below Spaces and Agents (block `se
         User admin
 
 - **Click:** opens a new space named like the host with `ssh <host>`, on this computer (not on a remote machine of the app). The shell stays open after the connection ends. Keys / ssh-agent are assumed: a password prompt works like in any terminal but is not automated.
-- **Not (yet) there:** reachability indicator, groups or labels, opening in a tab of the current space, hosts from `Include`d files. Hosts added as a herdr *Machine* ("Add machine") are a separate feature of the app (remote spaces with `herdr` on the server).
+- **Not (yet) there:** reachability indicator, groups or labels, opening in a tab of the current space, hosts from `Include`d files. The collapse/popup paths were only checked visually (layout shrinks, popup renders); clicking, saving and connecting were not run. Hosts added as a herdr *Machine* ("Add machine") are a separate feature of the app (remote spaces with `herdr` on the server).
 - **Narrow sidebar** (< 160 px): initials only.
-- Parser check: `node test/hosts.test.mjs`.
+- Parser check: `node herdr-app/test/hosts.test.mjs`.
 
 ## Dev, Docker, Vault panels
 

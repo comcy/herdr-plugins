@@ -17,3 +17,12 @@ export function parseHosts(text) {
   }
   return hosts;
 }
+
+// "[user@]host[:port]" -> parts (IPv6 not supported); null if empty/invalid.
+export function parseDest(s) {
+  const m = /^(?:([^@\s]+)@)?([^@\s:]+)(?::(\d{1,5}))?$/.exec((s ?? "").trim());
+  return m ? { user: m[1] ?? "", host: m[2], port: m[3] ?? "" } : null;
+}
+export const sshArgv = (d) => ["ssh", ...(d.port ? ["-p", d.port] : []), d.user ? `${d.user}@${d.host}` : d.host];
+export const hostBlock = (name, d) =>
+  `Host ${name}\n  HostName ${d.host}\n${d.user ? `  User ${d.user}\n` : ""}${d.port ? `  Port ${d.port}\n` : ""}`;

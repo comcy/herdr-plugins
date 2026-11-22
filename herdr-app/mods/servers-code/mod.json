@@ -1,1 +1,1 @@
-{ "place": "none", "title": "Servers" }
+{ "place": "none", "title": "Servers", "overlay": { "kind": "popup", "width": 440, "height": 250 } }
