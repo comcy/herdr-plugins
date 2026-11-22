@@ -369,11 +369,22 @@ export default class Spaces extends View {
             .child([...r.header][0]?.toUpperCase() ?? "?"))
           .child(div().truncate().text_color(t.foreground).child(r.header)))
         .when(!isFolded(r), (el) => el.child(this.row(r, t)));
-    // A thin divider between the repos and the plain folders; it is a child of the list too, so it shifts indexes.
-    const cut = (list) => { const i = list.findIndex((r) => !r.g); return i > 0 ? i : -1; };
+    // Captions "Repositories" / "Directories" with a thin divider between the groups. They are children of the list too,
+    // so `pos` maps a row's index to its child index (the list scrolls by children).
+    const caption = (text, first) => div().id(`cap-${text}`).flex_none().px(collapsed ? 0 : 8).pt(first ? 2 : 0).pb(2).text_size(10.5).font_weight(600).text_color(t.dim)
+      .when(collapsed, el => el.text_center()).child(collapsed ? text[0] : text.toUpperCase());
     const divider = () => div().id("repo-divider").h(1).flex_none().mx(collapsed ? 6 : 12).my(6).bg(t.border);
-    const drawList = (list) => { const kids = list.map(draw), i = cut(list); if (i > 0) kids.splice(i, 0, divider()); return kids; };
-    const indexIn = (list, i) => (i >= 0 && cut(list) > 0 && i >= cut(list) ? i + 1 : i);
+    const drawList = (list) => {
+      const kids = [], pos = [];
+      list.forEach((r, n) => {
+        if (n === 0 || (!r.g && list[n - 1].g)) {
+          if (n > 0) kids.push(divider());
+          kids.push(caption(r.g ? "Repositories" : "Directories", n === 0));
+        }
+        pos.push(kids.length); kids.push(draw(r));
+      });
+      return { kids, pos };
+    };
     // Where the active space's row lands among the children this returns: the list scrolls by its direct
     // children, and machine headers, login notes and loading rows count too.
     this.activeAt = -1;
@@ -387,9 +398,11 @@ export default class Spaces extends View {
     const loadingRow = m => h_flex().id(`machine-loading-${m ?? "local"}`).h(28).flex_none().px(collapsed ? 0 : 8).items_center().when(collapsed, el => el.justify_center()).text_size(12).text_color(t.dim).child(collapsed ? "…" : "Loading…");
     if (!remote.length) {
       if (loading(null) && !rows.length) return [loadingRow(null)];
-      this.activeAt = indexIn(rows, rows.findIndex(r => r.w.active));
-      return drawList(rows);
+      const dl = drawList(rows);
+      this.activeAt = dl.pos[rows.findIndex(r => r.w.active)] ?? -1;
+      return dl.kids;
     }
+    const dl = drawList;
     const machineNames = [null, ...remote];
     return machineNames.flatMap((m) => {
       const mine = rows.filter((r) => (r.w.machine ?? null) === m);
@@ -445,8 +458,8 @@ export default class Spaces extends View {
             .text_size(11).text_color(t.foreground).bg(t.raised).cursor_pointer().hover(s => s.bg(t.hover))
             .on_click((_e, cx) => { cx.stop_propagation(); cx.write_to_clipboard(login); this.copiedLogin = login; cx.notify(); })
             .child(this.copiedLogin === login ? "Copied" : "Copy")))] : [];
-      const items = [cell(head), ...guidance, ...(folded ? [] : mine.length ? drawList(mine) : [loading(m) ? loadingRow(m) : cell(empty)])];
-      const first = folded ? -1 : indexIn(mine, mine.findIndex(r => r.w.active));
+      const items = [cell(head), ...guidance, ...(folded ? [] : mine.length ? dl(mine).kids : [loading(m) ? loadingRow(m) : cell(empty)])];
+      const first = folded ? -1 : (dl(mine).pos[mine.findIndex(r => r.w.active)] ?? -1);
       if (first >= 0) this.activeAt = before + 1 + guidance.length + first;
       before += items.length;
       return items;
