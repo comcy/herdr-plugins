@@ -2,9 +2,16 @@
 // Click = new tab in that folder that runs it (shell stays open afterwards). Local spaces only.
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { exec, run, spaces, panes, theme, readTextFile, layout } from "herdr";
+import { run, spaces, panes, theme, readTextFile, layout, window } from "herdr";
 import { parsePackage, parseMakefile, detectPm, scriptCommand } from "./scripts.js";
 
+// Terminal argv that runs `cmd` and keeps a shell open afterwards (sh on Linux/macOS, PowerShell on Windows).
+const shell = (cmd) => window()?.platform === "windows"
+  ? ["powershell", "-NoProfile", "-NoExit", "-Command", `${cmd}; Write-Host "[exit $LASTEXITCODE]"`]
+  : ["sh", "-c", `${cmd}; c=$?; printf '\\n[exit %s]\\n' "$c"; exec "\${SHELL:-sh}"`];
+const PROBE = ["package.json", "Makefile", "makefile", "GNUmakefile", "pnpm-lock.yaml", "yarn.lock", "bun.lockb", "bun.lock"];
+// readTextFile: null = absent; a reject (e.g. lockfile over 1 MiB) = present.
+const probe = (dir, f) => readTextFile(`${dir}/${f}`).then((t) => t !== null, () => true);
 const find = (n, id) => (n?.id === id ? n : (n?.children ?? []).map((c) => find(c, id)).find(Boolean));
 
 export default class DevRun extends View {
@@ -27,7 +34,7 @@ export default class DevRun extends View {
     cx.spawn(async (cx) => {
       try {
         if (at.on) throw new Error("remote space: not supported");
-        const files = (await exec("ls", ["-A"], { cwd: at.cwd })).stdout.split("\n");
+        const files = (await Promise.all(PROBE.map(async (f) => ((await probe(at.cwd, f)) ? f : null)))).filter(Boolean);
         const groups = [];
         const pkg = files.includes("package.json") ? parsePackage((await readTextFile(`${at.cwd}/package.json`)) ?? "") : null;
         if (pkg?.scripts.length) {
@@ -46,7 +53,7 @@ export default class DevRun extends View {
   }
   start(it) {
     run("terminal.open", {
-      argv: ["sh", "-c", `${it.run}; c=$?; printf '\\n[exit %s]\\n' "$c"; exec "\${SHELL:-sh}"`],
+      argv: shell(it.run),
       folder: this.cwd, place: "tab", name: it.run,
     });
   }

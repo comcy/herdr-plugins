@@ -2,12 +2,19 @@
 // (see vault.example.json). Two modes in one file: right panel (block `vault`) and the capture popup (`mod.open:vault`).
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
-import { exec, run, theme, home, appHome, readTextFile, writeTextFile, props, closeOverlay, openOverlay, layout } from "herdr";
+import { exec, run, theme, home, appHome, readTextFile, writeTextFile, props, closeOverlay, openOverlay, layout, window } from "herdr";
 import { parseTasks, checkOff, captureName } from "./tasks.js";
 
 const find = (n, id) => (n?.id === id ? n : (n?.children ?? []).map((c) => find(c, id)).find(Boolean));
 const today = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };   // local time
 const popup = () => openOverlay({ mod: "vault-watch", kind: "popup", width: 480, height: 170 });
+
+const win = () => window()?.platform === "windows";
+// Windows: same output shape as `grep -rn` ("./rel/path.md:12:line") via PowerShell, so tasks.js parses both.
+const psScan = (cfg) => `[Console]::OutputEncoding=[Text.Encoding]::UTF8; $ex=@(${cfg.exclude.map((d) => `'${d}'`).join(",")}); $exf=@(${cfg.excludeFiles.map((f) => `'${f}'`).join(",")});
+Get-ChildItem -Recurse -File -Filter *.md | ForEach-Object { $rel=(Resolve-Path -LiteralPath $_.FullName -Relative).Substring(2).Replace('\\','/');
+  if (($rel.Split('/') | Select-Object -SkipLast 1 | Where-Object { $ex -contains $_ }) -or ($exf -contains $_.Name)) { return }
+  Select-String -LiteralPath $_.FullName -Encoding utf8 -Pattern '^\s*- \[ \].*due::' | ForEach-Object { "./$rel:$($_.LineNumber):$($_.Line)" } }`;
 
 async function loadConfig() {
   const text = await readTextFile(`${appHome()}/vault.json`);
@@ -36,7 +43,9 @@ export default class VaultWatch extends View {
       try {
         this.cfg = await loadConfig();
         const ex = [...this.cfg.exclude.map((d) => `--exclude-dir=${d}`), ...this.cfg.excludeFiles.map((f) => `--exclude=${f}`)];
-        const r = await exec("grep", ["-rnE", "--include=*.md", ...ex, "^[[:space:]]*- \\[ \\].*due::", "."], { cwd: this.cfg.path });
+        const r = win()
+          ? await exec("powershell", ["-NoProfile", "-Command", psScan(this.cfg)], { cwd: this.cfg.path, timeout: 120000 })
+          : await exec("grep", ["-rnE", "--include=*.md", ...ex, "^[[:space:]]*- \\[ \\].*due::", "."], { cwd: this.cfg.path });
         if (r.code > 1) throw new Error(r.stderr.trim() || "grep failed");
         this.tasks = parseTasks(r.stdout, today()); this.err = null;
       } catch (e) { this.err = String(e.message ?? e); }
@@ -44,7 +53,7 @@ export default class VaultWatch extends View {
     });
   }
   open(tk, cx) {
-    const vault = this.cfg.path.split("/").pop();
+    const vault = this.cfg.path.split(/[\\/]/).pop();
     cx.open_url(`obsidian://open?vault=${encodeURIComponent(vault)}&file=${encodeURIComponent(tk.file.replace(/\.md$/, ""))}`);
   }
   done(tk, cx) {
@@ -75,7 +84,7 @@ export default class VaultWatch extends View {
     if (!text || !this.cfg) return;
     const name = captureName(text, today()), dir = `${this.cfg.path}/${this.cfg.captureDir}`;
     try {
-      await exec("mkdir", ["-p", dir]);
+      await (win() ? exec("powershell", ["-NoProfile", "-Command", `New-Item -ItemType Directory -Force -LiteralPath '${dir}'`]) : exec("mkdir", ["-p", dir]));
       for (let i = 0; ; i++) {   // existing file -> writeTextFile rejects (expected null) -> next suffix
         try { await writeTextFile(`${dir}/${i ? name.replace(/\.md$/, ` ${i + 1}.md`) : name}`, text + "\n", null); break; }
         catch (e) { if (i >= 5) throw e; }

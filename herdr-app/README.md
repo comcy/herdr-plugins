@@ -35,7 +35,7 @@ A list of your SSH hosts in the left sidebar, below Spaces and Agents (block `se
 
 ## Dev, Docker, Vault panels
 
-Three more right-panel children next to Files / Changes / GitHub (tab-bar buttons **Dev**, **Docker**, **Vault**; they poll only while shown). All use the folder of the focused pane; local spaces only (remote space → message). Needs `sh`, `ls`, `grep` → Linux/macOS.
+Three more right-panel children next to Files / Changes / GitHub (tab-bar buttons **Dev**, **Docker**, **Vault**; they poll only while shown). All use the folder of the focused pane; local spaces only (remote space → message). Linux/macOS use `sh`/`grep`, Windows uses PowerShell (`powershell`; Windows branches **untested**).
 
 | Mod | What |
 |-----|------|
@@ -56,5 +56,7 @@ Three more right-panel children next to Files / Changes / GitHub (tab-bar button
 - Task row: click = open in Obsidian (`obsidian://`), `☐` = check off (`[ ]` → `[x]`, nothing else touched; refuses if the line changed meanwhile).
 - **+ Capture** (or key `"ctrl-shift-v": "mod.open:vault"` in `keys.json` → `global`): one line, Enter → `<captureDir>/<date> <title>.md`.
 - **Agent runs**: each entry becomes a button; it opens a tab in the vault folder with `argv` (agent + model) and `task` as first message.
+
+Windows: `powershell -ExecutionPolicy Bypass -File herdr-app\install.ps1` (app home `%HERDR_APP_HOME%`, else `~\.config\herdr-app` — assumption, check with `herdr-app status`). Vault `path` then e.g. `C:/Users/me/vault`.
 
 Test: `node herdr-app/test/tools.test.mjs`. Not verified: click paths (start, logs, check off, capture save, agent run), Docker with running containers, Dev with real scripts — only rendering/parsing.

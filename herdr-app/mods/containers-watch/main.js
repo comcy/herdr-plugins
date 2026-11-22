@@ -2,9 +2,13 @@
 // or all containers ("all" toggle). docker, else podman. Click = logs in a new tab. Local spaces only.
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { exec, run, spaces, panes, theme, layout } from "herdr";
+import { exec, run, spaces, panes, theme, layout, window } from "herdr";
 import { parsePs, portLabel } from "./containers.js";
 
+// Terminal argv that runs `cmd` and keeps a shell open afterwards (sh on Linux/macOS, PowerShell on Windows).
+const shell = (cmd) => window()?.platform === "windows"
+  ? ["powershell", "-NoProfile", "-NoExit", "-Command", `${cmd}; Write-Host "[exit $LASTEXITCODE]"`]
+  : ["sh", "-c", `${cmd}; c=$?; printf '\\n[exit %s]\\n' "$c"; exec "\${SHELL:-sh}"`];
 const find = (n, id) => (n?.id === id ? n : (n?.children ?? []).map((c) => find(c, id)).find(Boolean));
 
 export default class Containers extends View {
@@ -23,8 +27,8 @@ export default class Containers extends View {
   }
   async runtime() {
     if (!this.rt) {
-      const r = await exec("sh", ["-c", "command -v docker || command -v podman"]);
-      this.rt = r.stdout.trim().split("/").pop();
+      // exec rejects when the program can't start (not installed)
+      for (const rt of ["docker", "podman"]) { try { await exec(rt, ["--version"]); this.rt = rt; break; } catch {} }
     }
     return this.rt;
   }
@@ -57,7 +61,7 @@ export default class Containers extends View {
       return h_flex().id(`ct-${c.id}`).gap(8).px(10).h(28).flex_none().items_center().rounded(6).cursor_pointer()
         .hover((s) => s.bg(t.hover))
         .tooltip([c.name, c.image, c.status, ...(c.ports.length ? ["", ...c.ports.map((p) => `${portLabel(p)}/${p.proto}`)] : []), "", "click: logs"].join("\n"))
-        .on_click(() => run("terminal.open", { argv: ["sh", "-c", `${this.rt} logs -f --tail 300 ${c.id}; exec "\${SHELL:-sh}"`], folder: this.cwd, place: "tab", name: `logs ${c.name}` }))
+        .on_click(() => run("terminal.open", { argv: shell(`${this.rt} logs -f --tail 300 ${c.id}`), folder: this.cwd, place: "tab", name: `logs ${c.name}` }))
         .child(dot(c.state))
         .child(div().flex_1().min_w(0).truncate().text_color(t.foreground).child(c.name))
         .child(div().flex_none().text_size(11.5).text_color(t.dim).child(c.ports.filter((p) => p.host).map((p) => `:${p.host}`).join(" ")))
