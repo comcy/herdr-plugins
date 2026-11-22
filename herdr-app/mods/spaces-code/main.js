@@ -87,6 +87,7 @@ export default class Spaces extends View {
       for (const state of Object.values(this.reconnecting)) state.busy = false;
     } catch { this.reconnecting = {}; }
     try { this.folded = new Set(JSON.parse(localStorage.getItem("machines.folded") ?? "[]")); } catch { this.folded = new Set(); }
+    try { this.repoFolded = new Set(JSON.parse(localStorage.getItem("repos.folded") ?? "[]")); } catch { this.repoFolded = new Set(); }
     this.refreshMachines(cx);
     cx.timer.every(15000, cx => this.refreshMachines(cx));
     // Refresh only when the refs could have changed (see `due`).
@@ -301,6 +302,9 @@ export default class Spaces extends View {
     const ready = (w) => this.shown.has(w.id) || where(w, ps) in this.git || Date.now() - (this.born[w.id] ??= Date.now()) > 1500;
     for (const w of sp) if (!this.shown.has(w.id) && ready(w)) this.shown.add(w.id);
     const list = sp.map((w, i) => ({ w, i, g: this.git[where(w, ps)] ?? null }));
+    // Same branch in several spaces of one repo: those rows show their folder instead, to tell them apart.
+    this.dups = new Map();
+    for (const r of list) if (r.g) { const k = `${r.g.repo}|${r.g.branch}`; this.dups.set(k, (this.dups.get(k) ?? 0) + 1); }
     // Bare-repo layouts have no main checkout: the first space of a repo (a non-linked one wins) is the head.
     const head = new Map();
     for (const r of list) if (r.g && (!head.has(r.g.repo) || (head.get(r.g.repo).g.linked && !r.g.linked))) head.set(r.g.repo, r);
@@ -309,7 +313,7 @@ export default class Spaces extends View {
     const placed = new Set(); // repos whose worktrees are listed (under the first of its spaces)
     for (const r of list) {
       if (nested(r)) continue;
-      const bare = r.g && head.get(r.g.repo) === r && r.g.linked; // no main checkout: a header row groups the worktrees
+      const bare = r.g && head.get(r.g.repo) === r; // every git repo gets a header row (repo name) with its branches / worktrees indented below
       if (!bare) out.push({ ...r, tree: null });
       if (!r.g || head.get(r.g.repo) !== r || placed.has(r.g.repo)) continue;
       placed.add(r.g.repo);
@@ -341,11 +345,23 @@ export default class Spaces extends View {
 
   // The rows, under a header per machine once one isn't this computer.
   grouped(t, collapsed) {
-    const rows = this.ordered();
+    const all = this.ordered();
+    // A folded repo keeps only its header row (the first member carries it); the rail never folds.
+    const isFolded = (r) => !collapsed && r.g && this.repoFolded.has(r.g.repo);
+    const rows = all.filter((r) => !isFolded(r) || r.header);
     const draw = (r) => collapsed ? this.compact(r, t) : !r.header ? this.row(r, t)
       : v_flex().id(`repo-${r.w.id}`).flex_none()
-        .child(h_flex().h(24).flex_none().px(8).items_center().text_size(11).font_weight(600).text_color(t.dim).child(div().truncate().child(r.header)))
-        .child(this.row(r, t));
+        .child(h_flex().id(`repo-head-${r.w.id}`).h(24).flex_none().px(8).gap(5).items_center().text_size(11).font_weight(600).cursor_pointer()
+          .text_color(isFolded(r) && all.some((k) => k.g?.repo === r.g.repo && k.w.active) ? t.foreground : t.dim).hover(s => s.text_color(t.foreground))
+          .tooltip(isFolded(r) ? "Show branches" : "Hide branches")
+          .on_click((_e, cx) => {
+            this.repoFolded.has(r.g.repo) ? this.repoFolded.delete(r.g.repo) : this.repoFolded.add(r.g.repo);
+            localStorage.setItem("repos.folded", JSON.stringify([...this.repoFolded]));
+            cx.notify();
+          })
+          .child(svg(`mods/workspace-chrome/chevron-${isFolded(r) ? "right" : "down"}.svg`).size(10).flex_none())
+          .child(div().truncate().child(r.header)))
+        .when(!isFolded(r), (el) => el.child(this.row(r, t)));
     // Where the active space's row lands among the children this returns: the list scrolls by its direct
     // children, and machine headers, login notes and loading rows count too.
     this.activeAt = -1;
@@ -450,8 +466,8 @@ export default class Spaces extends View {
 
   row({ w, i, g, tree }, t) {
     const on = w.active;
-    // A worktree row shows its folder; the branch follows in the tail.
-    const label = tree && g?.top ? g.top : w.name;
+    // A row under a repo header shows its branch (detached: the folder).
+    const label = tree && g ? (g.branch && g.branch !== "(detached)" && (this.dups?.get(`${g.repo}|${g.branch}`) ?? 0) < 2 ? g.branch : g.top ?? w.name) : w.name;
     const fromIndex = this.pressed === null ? -1 : spaces().findIndex(s => s.id === this.pressed);
     const colors = shared("space.colors") ?? {};
     const color = colors[w.id] ?? "ansi6";
