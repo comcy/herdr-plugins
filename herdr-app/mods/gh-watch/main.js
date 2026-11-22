@@ -6,11 +6,12 @@ import { View, div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { exec, spaces, panes, theme, props, closeOverlay, layout } from "herdr";
 
-const PR = ["pr", "list", "--limit", "15", "--json", "number,title,author,isDraft,reviewDecision,statusCheckRollup,url"];
-const RUN = ["run", "list", "--limit", "10", "--json", "databaseId,workflowName,displayTitle,headBranch,status,conclusion,url"];
-const ISSUE = ["issue", "list", "--limit", "15", "--json", "number,title,author,labels,url"];
+const PR = ["pr", "list", "--limit", "15", "--json", "number,title,author,isDraft,reviewDecision,statusCheckRollup,url,body,headRefName,baseRefName,mergeable,additions,deletions,changedFiles"];
+const RUN = ["run", "list", "--limit", "10", "--json", "databaseId,workflowName,displayTitle,headBranch,status,conclusion,url,event,createdAt,updatedAt,attempt"];
+const ISSUE = ["issue", "list", "--limit", "15", "--json", "number,title,author,labels,url,body,assignees,createdAt"];
 const TABS = [["prs", "PRs"], ["runs", "Runs"], ["issues", "Issues"]];
 const find = (n, id) => (n?.id === id ? n : (n?.children ?? []).map((c) => find(c, id)).find(Boolean));
+const clip = (b) => (b?.trim() ? "\n\n" + (b.trim().length > 500 ? b.trim().slice(0, 500) + "…" : b.trim()) : "");
 const SPIN = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 export default class GhWatch extends View {
@@ -67,11 +68,17 @@ export default class GhWatch extends View {
     }
     return div().w(14).text_color(t.dim).child("◌");
   }
-  row(id, url, mark, title, tail, t) {
-    return h_flex().id(id).gap(8).px(10).h(28).flex_none().items_center().rounded(6)
+  row(id, url, mark, title, tail, t, tip) {
+    return h_flex().id(id).when(Boolean(tip), (el) => el.tooltip(tip)).gap(8).px(10).h(28).flex_none().items_center().rounded(6)
       .cursor_pointer().hover((s) => s.bg(t.hover)).on_click((_e, cx) => cx.open_url(url))
       .child(mark).child(div().flex_1().min_w(0).truncate().text_color(t.foreground).child(title))
       .child(div().flex_none().text_size(11.5).text_color(t.dim).child(tail));
+  }
+  prTip(p, checks) {
+    const lines = [`#${p.number} ${p.title}`, `${p.headRefName} → ${p.baseRefName} · ${p.author?.login ?? ""}`,
+      `+${p.additions} −${p.deletions} · ${p.changedFiles} files · merge: ${(p.mergeable ?? "").toLowerCase()}${p.reviewDecision ? " · " + p.reviewDecision.toLowerCase() : ""}`];
+    if (checks.length) lines.push("", ...checks.map((c) => `${c.status === "COMPLETED" ? ((c.conclusion ?? "").toUpperCase() === "SUCCESS" ? "✓" : "✗") : "…"} ${c.name ?? c.context}${c.status === "COMPLETED" && c.conclusion && c.conclusion !== "SUCCESS" ? " (" + c.conclusion.toLowerCase() + ")" : ""}`));
+    return lines.join("\n") + clip(p.body);
   }
   prRow(p, t) {
     // statusCheckRollup mixes check runs (status/conclusion) and statuses (state).
@@ -80,14 +87,16 @@ export default class GhWatch extends View {
     const running = checks.some(([s]) => s !== "COMPLETED");
     const mark = this.mark(bad ? "completed" : running ? "in_progress" : checks.length ? "completed" : "", bad ? "failure" : "success", t);
     const review = p.reviewDecision === "APPROVED" ? "approved · " : p.reviewDecision === "CHANGES_REQUESTED" ? "changes · " : "";
-    return this.row(`pr-${p.number}`, p.url, mark, `#${p.number}  ${p.title}${p.isDraft ? "  [draft]" : ""}`, `${review}${p.author?.login ?? ""}`, t);
+    return this.row(`pr-${p.number}`, p.url, mark, `#${p.number}  ${p.title}${p.isDraft ? "  [draft]" : ""}`, `${review}${p.author?.login ?? ""}`, t, this.prTip(p, p.statusCheckRollup ?? []));
   }
   runRow(r, t) {
-    return this.row(`run-${r.databaseId}`, r.url, this.mark(r.status, r.conclusion, t), `${r.workflowName}  ${r.displayTitle}`, r.headBranch, t);
+    return this.row(`run-${r.databaseId}`, r.url, this.mark(r.status, r.conclusion, t), `${r.workflowName}  ${r.displayTitle}`, r.headBranch, t,
+      `${r.workflowName}\n${r.displayTitle}\n${r.headBranch} · ${r.event} · attempt ${r.attempt ?? 1}\n${r.status}${r.conclusion ? " / " + r.conclusion : ""} · updated ${r.updatedAt}`);
   }
   issueRow(i, t) {
     const labels = (i.labels ?? []).map((l) => l.name).join(", ");
-    return this.row(`issue-${i.number}`, i.url, div().w(14).text_color(t.ansi2).child("○"), `#${i.number}  ${i.title}`, labels || (i.author?.login ?? ""), t);
+    return this.row(`issue-${i.number}`, i.url, div().w(14).text_color(t.ansi2).child("○"), `#${i.number}  ${i.title}`, labels || (i.author?.login ?? ""), t,
+      `#${i.number} ${i.title}\n${i.author?.login ?? ""} · ${i.createdAt?.slice(0, 10)}${(i.assignees ?? []).length ? " · → " + i.assignees.map((a) => a.login).join(", ") : ""}${labels ? "\n[" + labels + "]" : ""}${clip(i.body)}`);
   }
   render() {
     const t = theme(), rows = this.data[this.tab], error = this.errors[this.tab];

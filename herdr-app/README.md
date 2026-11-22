@@ -10,7 +10,7 @@ Herdr's built-in mods/layouts are replaced on every start, so these are **clones
 | `mods/spaces-code` | `spaces` + worktrees grouped under their repo (also bare repos: `.bare/` + worktrees), header = repo folder, row = folder + branch |
 | `mods/tabs-code` | `tabs`, "+" opens `new-menu-code` |
 | `mods/new-menu-code` | `new-menu` + entries: GitHub PRs & runs, Browser (carbonyl), Neovim tab, VS Code (`code .`) |
-| `mods/gh-watch` | Open PRs, Actions runs and issues of the focused pane's repo (`gh`), spinner for running, click opens URL. Two modes, one file: dialog (`ctrl-shift-g`) and a **GitHub** panel on the right next to Files/Changes (button in the tab bar; polls every 15 s, only while shown) |
+| `mods/gh-watch` | Open PRs, Actions runs and issues of the focused pane's repo (`gh`), spinner for running, click opens URL, hover tooltip (PR: branches, diff size, checks, description; issue: body, labels, assignees; run: event, status). Two modes, one file: dialog (`ctrl-shift-g`) and a **GitHub** panel on the right next to Files/Changes (button in the tab bar; polls every 15 s, only while shown) |
 | `mods/servers-code` | **Servers** list under Agents in the left sidebar: every `Host` of `~/.ssh/config` (no wildcards), click = new space running `ssh <host>` on this computer |
 
 Needs: `gh` (authenticated), `nvim`, `code`, `docker` (carbonyl: `fathyb/carbonyl`) for the respective menu entries.
