@@ -34,3 +34,13 @@ assert.deepEqual(sshArgv(parseDest("me@h:22")), ["ssh", "-p", "22", "me@h"]);
 assert.equal(hostBlock("h", parseDest("me@h:22")), "Host h\n  HostName h\n  User me\n  Port 22\n");
 assert.deepEqual(parseHosts(hostBlock("x", parseDest("u@1.2.3.4"))), [{ name: "x", host: "1.2.3.4", user: "u" }]);
 console.log("ok dest");
+import { hostDetail, removeHost, updateHost, destString } from "../mods/servers-code/hosts.js";
+const c2 = "Host a\n  HostName 1.1.1.1\n  User u\n  IdentityFile ~/k\n\nHost b c\n  HostName 2.2.2.2\n\nHost d\n  HostName 3.3.3.3\n";
+assert.deepEqual(hostDetail(c2, "a"), { host: "1.1.1.1", user: "u", port: "" });
+assert.equal(destString(hostDetail(c2, "d")), "3.3.3.3");
+assert.equal(removeHost(c2, "a"), "Host b c\n  HostName 2.2.2.2\n\nHost d\n  HostName 3.3.3.3\n");
+assert.equal(removeHost(c2, "b"), c2.replace("Host b c", "Host c"));
+assert.equal(updateHost(c2, "a", "z", { host: "9.9.9.9", user: "", port: "22" }),
+  "Host z\n  HostName 9.9.9.9\n  IdentityFile ~/k\n  Port 22\n\nHost b c\n  HostName 2.2.2.2\n\nHost d\n  HostName 3.3.3.3\n");
+assert.equal(parseHosts(updateHost(c2, "b", "b", { host: "5.5.5.5", user: "", port: "" })).find((h) => h.name === "b").host, "5.5.5.5");
+console.log("ok edit");
