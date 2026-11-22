@@ -349,9 +349,11 @@ export default class Spaces extends View {
     // A folded repo keeps only its header row (the first member carries it); the rail never folds.
     const isFolded = (r) => !collapsed && r.g && this.repoFolded.has(r.g.repo);
     const rows = all.filter((r) => !isFolded(r) || r.header);
+    // Same color as that space's avatar elsewhere (its own, or ansi6).
+    const avatar = (r) => { const c = (shared("space.colors") ?? {})[r.w.id] ?? "ansi6"; return c.startsWith("#") ? c : (MARK[c] ?? t[c]); };
     const draw = (r) => collapsed ? this.compact(r, t) : !r.header ? this.row(r, t)
       : v_flex().id(`repo-${r.w.id}`).flex_none()
-        .child(h_flex().id(`repo-head-${r.w.id}`).h(28).flex_none().px(8).pt(4).gap(5).items_center().text_size(13).font_weight(700).cursor_pointer()
+        .child(h_flex().id(`repo-head-${r.w.id}`).h(32).flex_none().px(8).pt(4).gap(7).items_center().text_size(13).font_weight(700).cursor_pointer()
           .text_color(isFolded(r) && all.some((k) => k.g?.repo === r.g.repo && k.w.active) ? t.foreground : t.muted).hover(s => s.text_color(t.foreground))
           .tooltip(isFolded(r) ? "Show branches" : "Hide branches")
           .on_click((_e, cx) => {
@@ -360,7 +362,9 @@ export default class Spaces extends View {
             cx.notify();
           })
           .child(svg(`mods/workspace-chrome/chevron-${isFolded(r) ? "right" : "down"}.svg`).size(14).flex_none())
-          .child(div().truncate().child(r.header)))
+          .child(h_flex().size(22).flex_none().rounded(6).bg(avatar(r)).items_center().justify_center().text_size(13).font_weight(800).text_color("#ffffff")
+            .child([...r.header][0]?.toUpperCase() ?? "?"))
+          .child(div().truncate().text_color(t.foreground).child(r.header)))
         .when(!isFolded(r), (el) => el.child(this.row(r, t)));
     // Where the active space's row lands among the children this returns: the list scrolls by its direct
     // children, and machine headers, login notes and loading rows count too.
