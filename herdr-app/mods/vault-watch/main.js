@@ -147,16 +147,16 @@ export default class VaultWatch extends View {
       .child(div().flex_1().min_w(0).truncate().text_color(t.foreground).child(tk.text))
       .child(div().flex_none().text_size(11.5).text_color(tk.overdue ? t.ansi1 : t.ansi3).child(tk.overdue ? tk.due.slice(5) : "today"));
     const over = (tasks ?? []).filter((x) => x.overdue), due = (tasks ?? []).filter((x) => !x.overdue);
-    return v_flex().id("vault").size_full().min_h(0).bg(t.chrome).p(8).gap(6).text_size(13)
-      .child(h_flex().gap(6).items_center().child(btn("v-cap", "+ Capture", popup)).child(div().flex_1())
+    return v_flex().id("vault").size_full().min_h(0).text_size(13).rounded(10).overflow_hidden().bg(t.background).border_1().border_color(t.border)
+      .child(h_flex().gap(6).items_center().h(42).flex_none().px(14).border_b(1).border_color(t.border).child(btn("v-cap", "+ Capture", popup)).child(div().flex_1())
         .child(div().id("v-reload").text_size(11.5).text_color(t.dim).cursor_pointer().on_click((_e, cx) => this.load(cx)).child("↻")))
-      .child(v_flex().id("v-rows").flex_1().min_h(0).overflow_y_scrollbar().gap(2)
+      .child(v_flex().id("v-rows").flex_1().min_h(0).p(6).overflow_y_scrollbar().gap(2)
         .when(Boolean(this.err), (el) => el.child(div().p(10).text_color(t.ansi1).child(this.err)))
         .when(!this.err && !tasks, (el) => el.child(div().p(10).text_color(t.dim).child("loading…")))
         .when(!this.err && tasks?.length === 0, (el) => el.child(div().p(10).text_color(t.dim).child("nothing due 🎉")))
         .when(over.length > 0, (el) => el.child(head("Overdue", over.length, t.ansi1)).children(over.map(row)))
         .when(due.length > 0, (el) => el.child(head("Due today", due.length, t.ansi3)).children(due.map(row))))
-      .when((this.cfg?.agents ?? []).length > 0, (el) => el.child(v_flex().gap(4).pt(4).border_t(1).border_color(t.border)
+      .when((this.cfg?.agents ?? []).length > 0, (el) => el.child(v_flex().gap(4).p(10).flex_none().border_t(1).border_color(t.border)
         .child(div().px(4).text_size(11.5).text_color(t.dim).child("Agent runs"))
         .child(h_flex().gap(6).flex_wrap().children(this.cfg.agents.map((a, i) => btn(`ag-${i}`, `▶ ${a.name}`, () => this.agent(a)))))));
   }

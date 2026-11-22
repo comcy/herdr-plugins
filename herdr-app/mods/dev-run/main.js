@@ -79,11 +79,12 @@ export default class DevRun extends View {
       .child(div().w(14).text_color(t.ansi2).child("▶"))
       .child(div().text_color(t.foreground).child(it.name))
       .child(div().flex_1().min_w(0).truncate().text_size(11.5).text_color(t.dim).child(it.cmd));
-    return v_flex().id("dev-run").size_full().min_h(0).bg(t.chrome).p(8).gap(2).text_size(13).overflow_y_scrollbar()
+    return v_flex().id("dev-run").size_full().min_h(0).text_size(13).rounded(10).overflow_hidden().bg(t.background).border_1().border_color(t.border)
+      .child(h_flex().gap(8).items_center().h(42).flex_none().px(14).border_b(1).border_color(t.border).child(div().text_color(t.foreground).child("Dev")).child(div().flex_1().min_w(0).truncate().text_size(11.5).text_color(t.dim).child(this.dir ?? "")))
+      .child(v_flex().id("dev-body").flex_1().min_h(0).p(6).gap(2).overflow_y_scrollbar()
       .when(Boolean(this.err), (el) => el.child(div().p(10).text_color(t.ansi1).child(this.err)))
       .when(!this.err && !g, (el) => el.child(div().p(10).text_color(t.dim).child("loading…")))
       .when(g?.length === 0, (el) => el.child(div().p(10).text_color(t.dim).child(this.found?.includes("package.json") ? `package.json in ${this.dir} has no "scripts" and no workspace package with scripts` : `no package.json / Makefile in ${this.dir ?? "this folder"} or its parents`)))
-      .when(Boolean(g?.length), (el) => el.child(div().px(10).text_size(11).text_color(t.dim).truncate().child(this.dir)))
-      .children((g ?? []).flatMap((grp) => [div().px(10).pt(8).pb(2).text_size(11.5).text_color(t.dim).child(grp.title), ...grp.items.map(row)]));
+      .children((g ?? []).flatMap((grp) => [div().px(10).pt(8).pb(2).text_size(11.5).text_color(t.dim).child(grp.title), ...grp.items.map(row)])));
   }
 }

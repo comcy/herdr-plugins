@@ -70,9 +70,9 @@ export default class Containers extends View {
     };
     const toggle = div().id("ct-scope").px(8).py(2).rounded(6).text_size(11.5).text_color(t.muted).cursor_pointer().hover((s) => s.bg(t.hover))
       .on_click((_e, cx) => { this.all = !this.all; this.items = null; this.load(cx); cx.notify(); }).child(this.all ? "all containers" : "this project");
-    return v_flex().id("containers").size_full().min_h(0).bg(t.chrome).p(8).gap(6).text_size(13)
-      .child(h_flex().items_center().gap(6).child(toggle).child(div().flex_1()).child(div().text_size(11.5).text_color(t.dim).child(this.rt ?? "")))
-      .child(v_flex().id("ct-rows").flex_1().min_h(0).overflow_y_scrollbar().gap(2)
+    return v_flex().id("containers").size_full().min_h(0).text_size(13).rounded(10).overflow_hidden().bg(t.background).border_1().border_color(t.border)
+      .child(h_flex().items_center().gap(6).h(42).flex_none().px(14).border_b(1).border_color(t.border).child(toggle).child(div().flex_1()).child(div().text_size(11.5).text_color(t.dim).child(this.rt ?? "")))
+      .child(v_flex().id("ct-rows").flex_1().min_h(0).p(6).overflow_y_scrollbar().gap(2)
         .when(Boolean(this.err), (el) => el.child(div().p(10).text_color(t.ansi1).child(this.err)))
         .when(!this.err && !items, (el) => el.child(div().p(10).text_color(t.dim).child("loading…")))
         .when(!this.err && items?.length === 0, (el) => el.child(div().p(10).text_color(t.dim).child(this.all ? "no containers" : "no compose containers for this folder — try \"all containers\"")))
