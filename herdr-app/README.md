@@ -32,3 +32,29 @@ A list of your SSH hosts in the left sidebar, below Spaces and Agents (block `se
 - **Not (yet) there:** reachability indicator, groups or labels, opening in a tab of the current space, hosts from `Include`d files. Hosts added as a herdr *Machine* ("Add machine") are a separate feature of the app (remote spaces with `herdr` on the server).
 - **Narrow sidebar** (< 160 px): initials only.
 - Parser check: `node test/hosts.test.mjs`.
+
+## Dev, Docker, Vault panels
+
+Three more right-panel children next to Files / Changes / GitHub (tab-bar buttons **Dev**, **Docker**, **Vault**; they poll only while shown). All use the folder of the focused pane; local spaces only (remote space → message). Needs `sh`, `ls`, `grep` → Linux/macOS.
+
+| Mod | What |
+|-----|------|
+| `mods/dev-run` | `package.json` scripts (pm from `packageManager` or lockfile: pnpm/yarn/bun/npm) and `Makefile` targets (`target: ## description`). Click = new tab in that folder running the command; the shell stays open after `[exit N]`. Only the folder itself, no workspaces/monorepo sub-packages. |
+| `mods/containers-watch` | `docker` (else `podman`) containers of the folder's compose project (label `com.docker.compose.project.working_dir`); toggle **this project / all containers**. Dot = state, `:port` = published ports, hover = image/status/ports. Click = `logs -f` in a new tab, `■/▶` stop/start, `↗` opens `localhost:<port>`. Refresh 5 s. |
+| `mods/vault-watch` | Obsidian vault: **overdue / due today** open tasks (`- [ ] … [due:: YYYY-MM-DD]`, `grep` over `*.md`), **+ Capture**, **agent runs**. |
+
+### Vault config
+
+`~/.config/herdr-app/vault.json` (not part of the repo; template `vault.example.json`):
+
+```json
+{ "path": "~/Workspace/my-vault", "captureDir": "Inbox",
+  "exclude": [".obsidian", ".git", "_kb", "Templates"], "excludeFiles": ["CONTEXT.md"],
+  "agents": [ { "name": "Inbox triage", "argv": ["claude", "--model", "sonnet"], "task": "…fixed prompt…" } ] }
+```
+
+- Task row: click = open in Obsidian (`obsidian://`), `☐` = check off (`[ ]` → `[x]`, nothing else touched; refuses if the line changed meanwhile).
+- **+ Capture** (or key `"ctrl-shift-v": "mod.open:vault"` in `keys.json` → `global`): one line, Enter → `<captureDir>/<date> <title>.md`.
+- **Agent runs**: each entry becomes a button; it opens a tab in the vault folder with `argv` (agent + model) and `task` as first message.
+
+Test: `node herdr-app/test/tools.test.mjs`. Not verified: click paths (start, logs, check off, capture save, agent run), Docker with running containers, Dev with real scripts — only rendering/parsing.

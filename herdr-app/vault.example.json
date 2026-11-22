@@ -1,0 +1,8 @@
+{
+  "path": "~/Workspace/my-vault",
+  "captureDir": "Inbox",
+  "exclude": [".obsidian", ".git", "_kb", "Templates"],
+  "agents": [
+    { "name": "Inbox triage", "argv": ["claude", "--model", "sonnet"], "task": "Go through Inbox/ and propose where each note belongs. Don't move anything yet." }
+  ]
+}

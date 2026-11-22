@@ -158,6 +158,27 @@
                       "content": {
                         "mod": "gh-watch"
                       }
+                    },
+                    {
+                      "id": "dev",
+                      "type": "block",
+                      "content": {
+                        "mod": "dev-run"
+                      }
+                    },
+                    {
+                      "id": "containers",
+                      "type": "block",
+                      "content": {
+                        "mod": "containers-watch"
+                      }
+                    },
+                    {
+                      "id": "vault",
+                      "type": "block",
+                      "content": {
+                        "mod": "vault-watch"
+                      }
                     }
                   ],
                   "active": "files"
