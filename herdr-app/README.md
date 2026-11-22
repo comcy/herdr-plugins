@@ -39,7 +39,7 @@ Three more right-panel children next to Files / Changes / GitHub (tab-bar button
 
 | Mod | What |
 |-----|------|
-| `mods/dev-run` | `package.json` scripts (pm from `packageManager` or lockfile: pnpm/yarn/bun/npm) and `Makefile` targets (`target: ## description`). Click = new tab in that folder running the command; the shell stays open after `[exit N]`. Only the folder itself, no workspaces/monorepo sub-packages. |
+| `mods/dev-run` | `package.json` scripts (pm from `packageManager` or lockfile: pnpm/yarn/bun/npm) and `Makefile` targets (`target: ## description`). Click = new tab in that folder running the command; the shell stays open after `[exit N]`. Looks upwards for the nearest folder with a package.json/Makefile; workspace packages (literal folders in `pnpm-workspace.yaml` or `package.json` `workspaces`, no globs) get their own group and run in their folder. |
 | `mods/containers-watch` | `docker` (else `podman`) containers of the folder's compose project (label `com.docker.compose.project.working_dir`); toggle **this project / all containers**. Dot = state, `:port` = published ports, hover = image/status/ports. Click = `logs -f` in a new tab, `■/▶` stop/start, `↗` opens `localhost:<port>`. Refresh 5 s. |
 | `mods/vault-watch` | Obsidian vault: **overdue / due today** open tasks (`- [ ] … [due:: YYYY-MM-DD]`, `grep` over `*.md`), **+ Capture**, **agent runs**. |
 

@@ -26,3 +26,7 @@ assert.equal(checkOff("x\n- [ ] Alt [due:: 1]\ny", 2, "Alt"), "x\n- [x] Alt [due
 assert.equal(checkOff("x\n- [x] Alt\n", 2, "Alt"), null); assert.equal(checkOff("x\n- [ ] Anders\n", 2, "Alt"), null);
 assert.equal(captureName("Idee: Foo/Bar\nmehr", "2026-11-22"), "2026-11-22 Idee FooBar.md");
 console.log("ok");
+import { parseWorkspaces } from "../mods/dev-run/scripts.js";
+assert.deepEqual(parseWorkspaces("packages:\n  - 'src/web'\n  - \"e2e\"\n  - 'pk/*'\nallowBuilds:\n  - 'x'\n", '{"workspaces":["./a/"]}'), ["src/web", "e2e", "a"]);
+assert.deepEqual(parseWorkspaces(null, '{"workspaces":{"packages":["x"]}}'), ["x"]);
+console.log("ok ws");

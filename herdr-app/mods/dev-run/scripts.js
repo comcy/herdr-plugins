@@ -17,3 +17,17 @@ export function parseMakefile(text) {
 export const detectPm = (files, declared) =>
   declared || (files.includes("pnpm-lock.yaml") ? "pnpm" : files.includes("yarn.lock") ? "yarn" : files.some((f) => f === "bun.lockb" || f === "bun.lock") ? "bun" : "npm");
 export const scriptCommand = (pm, name) => (pm === "yarn" ? `yarn ${name}` : `${pm} run ${name}`);
+// Workspace package folders: pnpm-workspace.yaml `packages:` list or package.json `workspaces` (array or {packages}).
+// Globs (`*`) and `!` excludes are skipped, only literal folders.
+export function parseWorkspaces(yaml, pkgJson) {
+  let pats = [];
+  if (yaml) {
+    let on = false;
+    for (const l of yaml.split("\n")) {
+      if (/^packages:\s*$/.test(l)) on = true;
+      else if (on) { const m = /^\s+-\s*['"]?([^'"#\s]+)['"]?/.exec(l); if (m) pats.push(m[1]); else if (/^\S/.test(l)) on = false; }
+    }
+  }
+  try { const w = JSON.parse(pkgJson ?? "null")?.workspaces; pats = pats.concat(Array.isArray(w) ? w : w?.packages ?? []); } catch {}
+  return pats.filter((p) => !/[*!]/.test(p)).map((p) => p.replace(/^\.\//, "").replace(/\/$/, ""));
+}
