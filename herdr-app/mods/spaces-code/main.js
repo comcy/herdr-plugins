@@ -351,15 +351,15 @@ export default class Spaces extends View {
     const rows = all.filter((r) => !isFolded(r) || r.header);
     const draw = (r) => collapsed ? this.compact(r, t) : !r.header ? this.row(r, t)
       : v_flex().id(`repo-${r.w.id}`).flex_none()
-        .child(h_flex().id(`repo-head-${r.w.id}`).h(24).flex_none().px(8).gap(5).items_center().text_size(11).font_weight(600).cursor_pointer()
-          .text_color(isFolded(r) && all.some((k) => k.g?.repo === r.g.repo && k.w.active) ? t.foreground : t.dim).hover(s => s.text_color(t.foreground))
+        .child(h_flex().id(`repo-head-${r.w.id}`).h(28).flex_none().px(8).pt(4).gap(5).items_center().text_size(13).font_weight(700).cursor_pointer()
+          .text_color(isFolded(r) && all.some((k) => k.g?.repo === r.g.repo && k.w.active) ? t.foreground : t.muted).hover(s => s.text_color(t.foreground))
           .tooltip(isFolded(r) ? "Show branches" : "Hide branches")
           .on_click((_e, cx) => {
             this.repoFolded.has(r.g.repo) ? this.repoFolded.delete(r.g.repo) : this.repoFolded.add(r.g.repo);
             localStorage.setItem("repos.folded", JSON.stringify([...this.repoFolded]));
             cx.notify();
           })
-          .child(svg(`mods/workspace-chrome/chevron-${isFolded(r) ? "right" : "down"}.svg`).size(10).flex_none())
+          .child(svg(`mods/workspace-chrome/chevron-${isFolded(r) ? "right" : "down"}.svg`).size(14).flex_none())
           .child(div().truncate().child(r.header)))
         .when(!isFolded(r), (el) => el.child(this.row(r, t)));
     // Where the active space's row lands among the children this returns: the list scrolls by its direct
@@ -516,9 +516,9 @@ export default class Spaces extends View {
         h_flex()
           .gap(9)
           .items_center()
-          .when(Boolean(tree), el => el.pl(22).child(svg("mods/workspace-chrome/branch.svg").size(13).flex_none().text_color(t.dim)))
-          .when(!tree, el => el.child(h_flex().size(18).flex_none().rounded(5).bg(fill).items_center().justify_center().text_size(10.5).font_bold().text_color("#ffffff").child([...w.name][0]?.toUpperCase() ?? "?")))
-          .child(div().flex_initial().min_w(SIDE_MIN).truncate().text_color(t.foreground).child(label))
+          .when(Boolean(tree), el => el.pl(22).child(svg("mods/workspace-chrome/branch.svg").size(15).flex_none().text_color(t.muted)))
+          .when(!tree, el => el.child(h_flex().size(22).flex_none().rounded(6).bg(fill).items_center().justify_center().text_size(13).font_weight(800).text_color("#ffffff").child([...w.name][0]?.toUpperCase() ?? "?")))
+          .child(div().flex_initial().min_w(SIDE_MIN).truncate().text_color(t.foreground).when(!tree, el => el.text_size(14).font_weight(600)).child(label))
           .child(g ? this.gitTail(g, tree, label, t) : div().flex_1()),
       );
   }
