@@ -76,7 +76,6 @@ export default class VaultWatch extends View {
     this.text = ""; this.images = 0;
     this.ta = TextareaState.new({ placeholder: "First line = title. Ctrl+V pastes a screenshot from the clipboard.", rows: 8 });
     this.ta.on("change", (_e, cx) => { this.text = this.ta.value(); cx.notify(); });
-    this.ta.on("submit", () => this.save());                       // Ctrl/Cmd+Enter
     this.ta.on("paste_other", (_e, cx) => this.paste(cx));          // clipboard had no text
     this.ta.focus(); cx.timer.after(600, () => this.ta.focus());
     this.handle = cx.focus_handle();
@@ -120,10 +119,13 @@ export default class VaultWatch extends View {
       .bg(primary ? t.solid : t.raised).text_color(primary ? t.solid_foreground : t.foreground).text_size(12.5).cursor_pointer()
       .hover((s) => s.opacity(0.88)).on_click(fn).child(label);
     return v_flex().id("vault-capture").track_focus(this.handle)
-      .on_key_down((e, cx) => { if (e.key === "escape") { closeOverlay(props().overlay); cx.stop_propagation(); } })
+      .on_key_down((e, cx) => {
+        if (e.key === "escape") { closeOverlay(props().overlay); cx.stop_propagation(); }
+        else if (e.key === "s" && (e.modifiers.control || e.modifiers.platform)) { this.save(); cx.stop_propagation(); }
+      })
       .w_full().p(18).gap(10).bg(t.popover).text_color(t.foreground)
       .child(h_flex().items_center().child(div().flex_1().text_size(15).font_semibold().child("Quick capture"))
-        .child(div().text_size(11).text_color(t.dim).child("Ctrl+Enter saves · Esc")))
+        .child(div().text_size(11).text_color(t.dim).child("Ctrl+S saves · Esc")))
       .child(Textarea.new(this.ta).w_full().h(190).px(10).py(8).rounded(9).border_1().border_color(t.accent).bg(t.background).text_size(12.8).text_color(t.foreground))
       .child(div().text_size(11.5).text_color(this.err ? t.ansi1 : t.dim)
         .child(this.err ?? `→ ${this.cfg?.captureDir ?? "Inbox"}/${this.images ? ` · ${this.images} image(s) → ${this.cfg.attachmentDir}/` : ""}`))
