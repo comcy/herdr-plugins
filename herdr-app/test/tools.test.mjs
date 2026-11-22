@@ -30,3 +30,6 @@ import { parseWorkspaces } from "../mods/dev-run/scripts.js";
 assert.deepEqual(parseWorkspaces("packages:\n  - 'src/web'\n  - \"e2e\"\n  - 'pk/*'\nallowBuilds:\n  - 'x'\n", '{"workspaces":["./a/"]}'), ["src/web", "e2e", "a"]);
 assert.deepEqual(parseWorkspaces(null, '{"workspaces":{"packages":["x"]}}'), ["x"]);
 console.log("ok ws");
+import { parseHooks } from "../mods/dev-run/scripts.js";
+assert.deepEqual(parseHooks("pre-commit\npre-push.sample\n.hidden\ncommit-msg\n"), ["pre-commit", "commit-msg"]);
+console.log("ok hooks");

@@ -31,3 +31,5 @@ export function parseWorkspaces(yaml, pkgJson) {
   try { const w = JSON.parse(pkgJson ?? "null")?.workspaces; pats = pats.concat(Array.isArray(w) ? w : w?.packages ?? []); } catch {}
   return pats.filter((p) => !/[*!]/.test(p)).map((p) => p.replace(/^\.\//, "").replace(/\/$/, ""));
 }
+// Hook names from `ls -1 <hooks dir>`: real hooks only (no `.sample`, no dotfiles, no backup `~`).
+export const parseHooks = (out) => out.split("\n").map((l) => l.trim()).filter((n) => n && !n.startsWith(".") && !/\.sample$|~$/.test(n));

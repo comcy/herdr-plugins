@@ -26,6 +26,8 @@ A list of your SSH hosts in the left sidebar, below Spaces and Agents (block `se
 - **Collapse:** click the title (`▾`/`▸`) → the block shrinks to its header (`layout.resize` to 41 px, state remembered in shared `servers.collapsed`, reapplied at start).
 - **+ New connection:** popup with *Address* (`[user@]host[:port]`) and optional *Name* (default: host). **Save & connect** (Enter) appends a `Host <name>` block (`HostName`, `User`, `Port`) to `~/.ssh/config` (creates `~/.ssh` / the file if missing; an existing name is not duplicated), so it stays in the list, then connects with `ssh <name>`. **Connect once** = plain `ssh`, nothing saved. IPv6 addresses and `-i` keys: write the Host block by hand.
 
+- **Right-click a row:** popup *Edit <name>* with Address and Name prefilled. **Save** rewrites that `Host` block in place (HostName / User / Port updated, other directives like `IdentityFile` kept; a shared `Host a b` line is split). **Delete** (asks again: *Really delete?*) removes the block from `~/.ssh/config`. Untested in the real app: only the text rewrite is covered by `test/hosts.test.mjs`.
+
 - **Source:** `~/.ssh/config`, re-read every 30 s. Each `Host` name counts, patterns with `*`, `?` or `!` are skipped. The row shows `User@HostName` from the first matching `HostName` / `User` line. `Include` and `Match` are not followed. Add a server = add a `Host` block, nothing else to maintain:
 
       Host nas
@@ -43,7 +45,7 @@ Three more right-panel children next to Files / Changes / GitHub (tab-bar button
 
 | Mod | What |
 |-----|------|
-| `mods/dev-run` | `package.json` scripts (pm from `packageManager` or lockfile: pnpm/yarn/bun/npm) and `Makefile` targets (`target: ## description`). Click = new tab in that folder running the command; the shell stays open after `[exit N]`. Looks upwards for the nearest folder with a package.json/Makefile; workspace packages (literal folders in `pnpm-workspace.yaml` or `package.json` `workspaces`, no globs) get their own group and run in their folder. |
+| `mods/dev-run` | `package.json` scripts (pm from `packageManager` or lockfile: pnpm/yarn/bun/npm) and `Makefile` targets (`target: ## description`). Click = new tab in that folder running the command; the shell stays open after `[exit N]`. Looks upwards for the nearest folder with a package.json/Makefile; workspace packages (literal folders in `pnpm-workspace.yaml` or `package.json` `workspaces`, no globs) get their own group and run in their folder. **Git hooks:** every hook in the repo's hooks folder (`git rev-parse --git-path hooks`, so `core.hooksPath`, husky and worktrees work; `.sample` files skipped) as its own group; click runs the hook in the repo root (Linux/macOS only, needs `ls`). Shown even without package.json/Makefile. |
 | `mods/containers-watch` | `docker` (else `podman`) containers of the folder's compose project (label `com.docker.compose.project.working_dir`); toggle **this project / all containers**. Dot = state, `:port` = published ports, hover = image/status/ports. Click = `logs -f` in a new tab, `■/▶` stop/start, `↗` opens `localhost:<port>`. Refresh 5 s. |
 | `mods/vault-watch` | Obsidian vault: **overdue / due today** open tasks (`- [ ] … [due:: YYYY-MM-DD]`, `grep` over `*.md`), **+ Capture**, **agent runs**. |
 
