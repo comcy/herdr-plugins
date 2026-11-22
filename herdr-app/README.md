@@ -23,7 +23,7 @@ If the layout switches back to `main` after a restart: `herdr-app do layout.swit
 A list of your SSH hosts in the left sidebar, below Spaces and Agents (block `servers` in `layouts/main-code.json`; its height is `weight` 0.4, change it there). Same look as Agents: separator line on top, header with title and **+**.
 
 - **Collapse:** click the title (`▾`/`▸`) → the block shrinks to its header (`layout.resize` to 41 px, state remembered in shared `servers.collapsed`, reapplied at start).
-- **+ New connection:** popup with *Address* (`[user@]host[:port]`) and *Name*. **Connect** = one-off `ssh` (space named after the name or host, nothing saved). **Save & connect** = appends a `Host <name>` block (`HostName`, `User`, `Port`) to `~/.ssh/config` (creates `~/.ssh` / the file if missing; refuses a name that exists), then connects with `ssh <name>`. IPv6 addresses and `-i` keys: write the Host block by hand.
+- **+ New connection:** popup with *Address* (`[user@]host[:port]`) and optional *Name* (default: host). **Save & connect** (Enter) appends a `Host <name>` block (`HostName`, `User`, `Port`) to `~/.ssh/config` (creates `~/.ssh` / the file if missing; an existing name is not duplicated), so it stays in the list, then connects with `ssh <name>`. **Connect once** = plain `ssh`, nothing saved. IPv6 addresses and `-i` keys: write the Host block by hand.
 
 - **Source:** `~/.ssh/config`, re-read every 30 s. Each `Host` name counts, patterns with `*`, `?` or `!` are skipped. The row shows `User@HostName` from the first matching `HostName` / `User` line. `Include` and `Match` are not followed. Add a server = add a `Host` block, nothing else to maintain:
 

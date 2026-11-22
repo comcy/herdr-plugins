@@ -1,5 +1,5 @@
 // Servers: hosts of ~/.ssh/config under Spaces/Agents. Click = new space that runs `ssh <host>` on this computer.
-// "+" opens a popup: connect to [user@]host[:port] once, or save it as a Host block in ~/.ssh/config.
+// "+" opens a popup: save [user@]host[:port] as a Host block in ~/.ssh/config and connect (or connect once).
 // Click the title to collapse/expand (remembered). Narrow sidebar (<160px): initials only.
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
@@ -33,16 +33,17 @@ export default class Servers extends View {
   // --- "+" popup ---
   initAdd(cx) {
     this.err = null; this.addr = ""; this.name = "";
-    const field = (key) => { const s = InputState.new({ value: "" }); s.on("change", () => { this[key] = s.value(); }); s.on("submit", () => this.go(false)); return s; };
+    const field = (key) => { const s = InputState.new({ value: "" }); s.on("change", () => { this[key] = s.value(); }); s.on("submit", () => this.go(true)); return s; };
     this.addrIn = field("addr"); this.nameIn = field("name");
     this.addrIn.focus(); cx.timer.after(600, () => this.addrIn.focus());
     this.handle = cx.focus_handle();
   }
+  // save: write a Host block (name defaults to the host) and connect by name; otherwise one-off ssh. Existing name = just connect.
   go(save) {
-    const d = parseDest(this.addr), name = this.name.trim();
+    const d = parseDest(this.addr), name = this.name.trim() || d?.host;
     if (!d) { this.err = "address: [user@]host[:port]"; return; }
-    if (!save) { closeOverlay(props().overlay); connect(name || d.host, sshArgv(d)); return; }
-    if (!name || /[\s*?!]/.test(name)) { this.err = "name needed to save (no spaces / wildcards)"; return; }
+    if (!save) { closeOverlay(props().overlay); connect(name, sshArgv(d)); return; }
+    if (/[\s*?!]/.test(name)) { this.err = "name: no spaces / wildcards"; return; }
     this.persist(name, d).then(
       () => { setShared("servers.rev", Date.now()); closeOverlay(props().overlay); connect(name, ["ssh", name]); },
       (e) => { this.err = String(e.message ?? e); },
@@ -50,7 +51,7 @@ export default class Servers extends View {
   }
   async persist(name, d) {
     const path = CONFIG(), old = await readTextFile(path).catch(() => null);
-    if (old && parseHosts(old).some((h) => h.name === name)) throw new Error(`${name} already in ssh config`);
+    if (old && parseHosts(old).some((h) => h.name === name)) return;   // already listed
     if (old === null) {
       const dir = `${home()}/.ssh`;
       await (window()?.platform === "windows" ? exec("powershell", ["-NoProfile", "-Command", `New-Item -ItemType Directory -Force -LiteralPath '${dir}'`]) : exec("mkdir", ["-p", dir]));
@@ -71,11 +72,11 @@ export default class Servers extends View {
       })
       .child(h_flex().items_center().child(div().flex_1().text_size(15).font_semibold().child("New connection")).child(div().text_size(11).text_color(t.dim).child("Esc")))
       .child(label("Address  (user@host or host:port)")).child(input(this.addrIn))
-      .child(label("Name  (needed to save to ~/.ssh/config)")).child(input(this.nameIn))
+      .child(label("Name  (optional, default: host)")).child(input(this.nameIn))
       .child(div().pt(6).h(20).text_size(11.5).text_color(t.ansi1).child(this.err ?? ""))
       .child(h_flex().pt(6).gap(8).justify_end()
-        .child(button("srv-save", "Save & connect", false, () => this.go(true)))
-        .child(button("srv-go", "Connect", true, () => this.go(false))));
+        .child(button("srv-once", "Connect once", false, () => this.go(false)))
+        .child(button("srv-go", "Save & connect", true, () => this.go(true))));
   }
   // --- panel ---
   row(h, t, rail) {
