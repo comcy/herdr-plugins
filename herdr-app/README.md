@@ -7,7 +7,7 @@ Herdr's built-in mods/layouts are replaced on every start, so these are **clones
 | Item | What |
 |---|---|
 | `layouts/main-code.json` | Clone of `main` using the mods below; keeps Spaces list + Agents overview on the left |
-| `mods/spaces-code` | `spaces` + every git repo gets a header row (repo name, click folds/unfolds its branches, state in localStorage `repos.folded`) with its spaces indented below, each row labelled with its **branch** (folder name instead when several spaces of the repo are on the same branch or HEAD is detached). Also bare repos (`.bare/` + worktrees). Non-git spaces stay plain rows |
+| `mods/spaces-code` | `spaces` + every git repo gets a header row (repo name, click folds/unfolds its branches, state in localStorage `repos.folded`) with its spaces indented below, each row labelled with its **branch** (folder name instead when several spaces of the repo are on the same branch or HEAD is detached). Also bare repos (`.bare/` + worktrees). Spaces are sorted: repos first, then a thin divider, then plain folders (non-git) |
 | `mods/tabs-code` | `tabs`, "+" opens `new-menu-code` |
 | `mods/new-menu-code` | `new-menu` + entries: GitHub PRs & runs, Browser (carbonyl), Neovim tab, VS Code (`code .`) |
 | `mods/gh-watch` | Open PRs, Actions runs and issues of the focused pane's repo (`gh`), spinner for running, click opens URL, hover tooltip (PR: branches, diff size, checks, description; issue: body, labels, assignees; run: event, status). Two modes, one file: dialog (`ctrl-shift-g`) and a **GitHub** panel on the right next to Files/Changes (button in the tab bar; polls every 15 s, only while shown) |

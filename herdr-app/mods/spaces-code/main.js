@@ -321,6 +321,9 @@ export default class Spaces extends View {
       const members = bare ? [r, ...kids] : kids;
       members.forEach((k, n) => out.push({ ...k, tree: n === members.length - 1 ? "└─" : "├─", header: bare && n === 0 ? r.g.name : null }));
     }
+    // Git repos first, then the plain folders (stable within each group).
+    const gitFirst = [...out.filter((r) => r.g), ...out.filter((r) => !r.g)];
+    out.length = 0; out.push(...gitFirst);
     // Simulate the batch so later indexes include earlier moves. An attempted
     // write can lose a sync conflict: allow the echo to settle before retrying.
     const order = sp.map(w => w.id);
@@ -366,6 +369,11 @@ export default class Spaces extends View {
             .child([...r.header][0]?.toUpperCase() ?? "?"))
           .child(div().truncate().text_color(t.foreground).child(r.header)))
         .when(!isFolded(r), (el) => el.child(this.row(r, t)));
+    // A thin divider between the repos and the plain folders; it is a child of the list too, so it shifts indexes.
+    const cut = (list) => { const i = list.findIndex((r) => !r.g); return i > 0 ? i : -1; };
+    const divider = () => div().id("repo-divider").h(1).flex_none().mx(collapsed ? 6 : 12).my(6).bg(t.border);
+    const drawList = (list) => { const kids = list.map(draw), i = cut(list); if (i > 0) kids.splice(i, 0, divider()); return kids; };
+    const indexIn = (list, i) => (i >= 0 && cut(list) > 0 && i >= cut(list) ? i + 1 : i);
     // Where the active space's row lands among the children this returns: the list scrolls by its direct
     // children, and machine headers, login notes and loading rows count too.
     this.activeAt = -1;
@@ -379,8 +387,8 @@ export default class Spaces extends View {
     const loadingRow = m => h_flex().id(`machine-loading-${m ?? "local"}`).h(28).flex_none().px(collapsed ? 0 : 8).items_center().when(collapsed, el => el.justify_center()).text_size(12).text_color(t.dim).child(collapsed ? "…" : "Loading…");
     if (!remote.length) {
       if (loading(null) && !rows.length) return [loadingRow(null)];
-      this.activeAt = rows.findIndex(r => r.w.active);
-      return rows.map(draw);
+      this.activeAt = indexIn(rows, rows.findIndex(r => r.w.active));
+      return drawList(rows);
     }
     const machineNames = [null, ...remote];
     return machineNames.flatMap((m) => {
@@ -437,8 +445,8 @@ export default class Spaces extends View {
             .text_size(11).text_color(t.foreground).bg(t.raised).cursor_pointer().hover(s => s.bg(t.hover))
             .on_click((_e, cx) => { cx.stop_propagation(); cx.write_to_clipboard(login); this.copiedLogin = login; cx.notify(); })
             .child(this.copiedLogin === login ? "Copied" : "Copy")))] : [];
-      const items = [cell(head), ...guidance, ...(folded ? [] : mine.length ? mine.map(draw) : [loading(m) ? loadingRow(m) : cell(empty)])];
-      const first = folded ? -1 : mine.findIndex(r => r.w.active);
+      const items = [cell(head), ...guidance, ...(folded ? [] : mine.length ? drawList(mine) : [loading(m) ? loadingRow(m) : cell(empty)])];
+      const first = folded ? -1 : indexIn(mine, mine.findIndex(r => r.w.active));
       if (first >= 0) this.activeAt = before + 1 + guidance.length + first;
       before += items.length;
       return items;
