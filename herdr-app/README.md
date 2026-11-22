@@ -51,13 +51,13 @@ Three more right-panel children next to Files / Changes / GitHub (tab-bar button
 `~/.config/herdr-app/vault.json` (not part of the repo; template `vault.example.json`):
 
 ```json
-{ "path": "~/Workspace/my-vault", "captureDir": "Inbox",
+{ "path": "~/Workspace/my-vault", "captureDir": "Inbox", "attachmentDir": "Attachments",
   "exclude": [".obsidian", ".git", "_kb", "Templates"], "excludeFiles": ["CONTEXT.md"],
   "agents": [ { "name": "Inbox triage", "argv": ["claude", "--model", "sonnet"], "task": "…fixed prompt…" } ] }
 ```
 
 - Task row: click = open in Obsidian (`obsidian://`), `☐` = check off (`[ ]` → `[x]`, nothing else touched; refuses if the line changed meanwhile).
-- **+ Capture** (or key `"ctrl-shift-v": "mod.open:vault"` in `keys.json` → `global`): one line, Enter → `<captureDir>/<date> <title>.md`.
+- **+ Capture** (or key `"ctrl-shift-v": "mod.open:vault"` in `keys.json` → `global`): multi-line note, first line = file name, saved as `<captureDir>/<date> <title>.md` with **Ctrl+Enter** or *Save*. **Screenshot:** Ctrl+V with an image in the clipboard (or the *📎 Screenshot* button) saves `<attachmentDir>/Pasted image <stamp>.png` (default `Attachments`) and inserts `![[…]]` at the cursor. Needs `wl-clipboard` or `xclip` (Linux), `pngpaste` (macOS), PowerShell (Windows; untested).
 - **Agent runs**: each entry becomes a button; it opens a tab in the vault folder with `argv` (agent + model) and `task` as first message.
 
 Windows: `powershell -ExecutionPolicy Bypass -File herdr-app\install.ps1` (app home `%HERDR_APP_HOME%`, else `~\.config\herdr-app` — assumption, check with `herdr-app status`). Vault `path` then e.g. `C:/Users/me/vault`.

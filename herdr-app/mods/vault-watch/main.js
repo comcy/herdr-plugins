@@ -1,13 +1,14 @@
 // Obsidian vault: due/overdue tasks, quick capture, preconfigured agent runs. Path etc. in ~/.config/herdr-app/vault.json
 // (see vault.example.json). Two modes in one file: right panel (block `vault`) and the capture popup (`mod.open:vault`).
 import { View, div } from "gpui-kit";
-import { v_flex, h_flex, InputState, Input } from "gpui-base";
+import { v_flex, h_flex, TextareaState, Textarea } from "gpui-base";
 import { exec, run, theme, home, appHome, readTextFile, writeTextFile, props, closeOverlay, openOverlay, layout, window } from "herdr";
 import { parseTasks, checkOff, captureName } from "./tasks.js";
 
 const find = (n, id) => (n?.id === id ? n : (n?.children ?? []).map((c) => find(c, id)).find(Boolean));
 const today = () => { const d = new Date(), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };   // local time
-const popup = () => openOverlay({ mod: "vault-watch", kind: "popup", width: 480, height: 170 });
+const stamp = () => today().replace(/-/g, "") + new Date().toTimeString().slice(0, 8).replace(/:/g, "");   // 20261122143005, Obsidian style
+const popup = () => openOverlay({ mod: "vault-watch", kind: "popup", width: 540, height: 350 });
 
 const win = () => window()?.platform === "windows";
 // Windows: same output shape as `grep -rn` ("./rel/path.md:12:line") via PowerShell, so tasks.js parses both.
@@ -21,7 +22,7 @@ async function loadConfig() {
   if (!text) throw new Error(`create ${appHome()}/vault.json  {"path": "~/path/to/vault"}`);
   const c = JSON.parse(text);
   if (!c.path) throw new Error("vault.json: \"path\" missing");
-  return { exclude: [".obsidian", ".git", "_kb", "Templates"], excludeFiles: ["CONTEXT.md"], captureDir: "Inbox", agents: [], ...c, path: c.path.replace(/^~/, home()).replace(/\/$/, "") };
+  return { exclude: [".obsidian", ".git", "_kb", "Templates"], excludeFiles: ["CONTEXT.md"], captureDir: "Inbox", attachmentDir: "Attachments", agents: [], ...c, path: c.path.replace(/^~/, home()).replace(/\/$/, "") };
 }
 
 export default class VaultWatch extends View {
@@ -70,21 +71,42 @@ export default class VaultWatch extends View {
   agent(a) {
     run("tab.new", { name: a.name, folder: this.cfg.path, argv: a.argv, ...(a.task ? { task: a.task } : {}) });
   }
-  // --- capture popup ---
+  // --- capture popup: multi-line note, Ctrl+V / button pastes a clipboard image as an attachment ---
   initCapture(cx) {
-    this.text = ""; this.input = InputState.new({ value: "" });
-    this.input.on("change", () => { this.text = this.input.value(); cx.notify(); });
-    this.input.on("submit", () => this.save());
-    this.input.focus(); cx.timer.after(600, () => this.input.focus());
+    this.text = ""; this.images = 0;
+    this.ta = TextareaState.new({ placeholder: "First line = title. Ctrl+V pastes a screenshot from the clipboard.", rows: 8 });
+    this.ta.on("change", (_e, cx) => { this.text = this.ta.value(); cx.notify(); });
+    this.ta.on("submit", () => this.save());                       // Ctrl/Cmd+Enter
+    this.ta.on("paste_other", (_e, cx) => this.paste(cx));          // clipboard had no text
+    this.ta.focus(); cx.timer.after(600, () => this.ta.focus());
     this.handle = cx.focus_handle();
     cx.spawn(async (cx) => { try { this.cfg = await loadConfig(); } catch (e) { this.err = String(e.message ?? e); } cx.notify(); });
+  }
+  mkdir(dir) {
+    return win() ? exec("powershell", ["-NoProfile", "-Command", `New-Item -ItemType Directory -Force -LiteralPath '${dir}'`]) : exec("mkdir", ["-p", dir]);
+  }
+  // Clipboard image -> <attachmentDir>/Pasted image <stamp>.png, then `![[name]]` at the cursor.
+  paste(cx) {
+    if (!this.cfg) return;
+    cx.spawn(async (cx) => {
+      const dir = `${this.cfg.path}/${this.cfg.attachmentDir}`, name = `Pasted image ${stamp()}.png`, f = `${dir}/${name}`;
+      try {
+        await this.mkdir(dir);
+        const r = win()
+          ? await exec("powershell", ["-NoProfile", "-Command", `Add-Type -AssemblyName System.Drawing; $i=Get-Clipboard -Format Image; if(-not $i){exit 1}; $i.Save('${f}',[Drawing.Imaging.ImageFormat]::Png)`])
+          : await exec("sh", ["-c", `f="$1"; { wl-paste --type image/png || xclip -selection clipboard -t image/png -o || pngpaste -; } >"$f" 2>/dev/null; [ -s "$f" ] || { rm -f "$f"; exit 1; }`, "sh", f]);
+        if (r.code !== 0) throw new Error("no image in the clipboard (Linux: wl-clipboard or xclip, macOS: pngpaste)");
+        this.ta.replace(`![[${name}]]\n`); this.images++; this.err = null;
+      } catch (e) { this.err = String(e.message ?? e); }
+      cx.notify();
+    });
   }
   async save() {
     const text = this.text.trim();
     if (!text || !this.cfg) return;
     const name = captureName(text, today()), dir = `${this.cfg.path}/${this.cfg.captureDir}`;
     try {
-      await (win() ? exec("powershell", ["-NoProfile", "-Command", `New-Item -ItemType Directory -Force -LiteralPath '${dir}'`]) : exec("mkdir", ["-p", dir]));
+      await this.mkdir(dir);
       for (let i = 0; ; i++) {   // existing file -> writeTextFile rejects (expected null) -> next suffix
         try { await writeTextFile(`${dir}/${i ? name.replace(/\.md$/, ` ${i + 1}.md`) : name}`, text + "\n", null); break; }
         catch (e) { if (i >= 5) throw e; }
@@ -94,13 +116,20 @@ export default class VaultWatch extends View {
   }
   renderCapture() {
     const t = theme();
+    const btn = (id, label, primary, fn) => div().id(id).px(12).py(6).rounded(8).border_1().border_color(primary ? t.solid : t.input)
+      .bg(primary ? t.solid : t.raised).text_color(primary ? t.solid_foreground : t.foreground).text_size(12.5).cursor_pointer()
+      .hover((s) => s.opacity(0.88)).on_click(fn).child(label);
     return v_flex().id("vault-capture").track_focus(this.handle)
       .on_key_down((e, cx) => { if (e.key === "escape") { closeOverlay(props().overlay); cx.stop_propagation(); } })
       .w_full().p(18).gap(10).bg(t.popover).text_color(t.foreground)
       .child(h_flex().items_center().child(div().flex_1().text_size(15).font_semibold().child("Quick capture"))
-        .child(div().text_size(11).text_color(t.dim).child("Enter saves · Esc")))
-      .child(Input.new(this.input).h(36).px(10).rounded(9).border_1().border_color(t.accent).bg(t.background).text_size(12.8).text_color(t.foreground))
-      .child(div().text_size(11.5).text_color(this.err ? t.ansi1 : t.dim).child(this.err ?? `→ ${this.cfg?.captureDir ?? "Inbox"}/`));
+        .child(div().text_size(11).text_color(t.dim).child("Ctrl+Enter saves · Esc")))
+      .child(Textarea.new(this.ta).w_full().h(190).px(10).py(8).rounded(9).border_1().border_color(t.accent).bg(t.background).text_size(12.8).text_color(t.foreground))
+      .child(div().text_size(11.5).text_color(this.err ? t.ansi1 : t.dim)
+        .child(this.err ?? `→ ${this.cfg?.captureDir ?? "Inbox"}/${this.images ? ` · ${this.images} image(s) → ${this.cfg.attachmentDir}/` : ""}`))
+      .child(h_flex().gap(8).justify_end()
+        .child(btn("cap-img", "📎 Screenshot", false, (_e, cx) => this.paste(cx)))
+        .child(btn("cap-save", "Save", true, () => this.save())));
   }
   render() {
     if (this.capture) return this.renderCapture();
