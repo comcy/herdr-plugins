@@ -87,6 +87,7 @@ export default class Spaces extends View {
       for (const state of Object.values(this.reconnecting)) state.busy = false;
     } catch { this.reconnecting = {}; }
     try { this.folded = new Set(JSON.parse(localStorage.getItem("machines.folded") ?? "[]")); } catch { this.folded = new Set(); }
+    try { this.groupFolded = new Set(JSON.parse(localStorage.getItem("spaces.groups.folded") ?? "[]")); } catch { this.groupFolded = new Set(); }
     try { this.repoFolded = new Set(JSON.parse(localStorage.getItem("repos.folded") ?? "[]")); } catch { this.repoFolded = new Set(); }
     this.refreshMachines(cx);
     cx.timer.every(15000, cx => this.refreshMachines(cx));
@@ -371,17 +372,30 @@ export default class Spaces extends View {
         .when(!isFolded(r), (el) => el.child(this.row(r, t)));
     // Captions "Repositories" / "Directories" with a thin divider between the groups. They are children of the list too,
     // so `pos` maps a row's index to its child index (the list scrolls by children).
-    const caption = (text, first) => div().id(`cap-${text}`).flex_none().px(collapsed ? 0 : 8).pt(first ? 2 : 0).pb(2).text_size(10.5).font_weight(600).text_color(t.dim)
-      .when(collapsed, el => el.text_center()).child(collapsed ? text[0] : text.toUpperCase());
+    const caption = (id, text, first) => {
+      const folded = this.groupFolded.has(id);
+      return h_flex().id(`cap-${id}`).flex_none().h(first ? 22 : 20).px(collapsed ? 0 : 8).gap(4).items_center().cursor_pointer().text_size(10.5).font_weight(600).text_color(t.dim)
+        .hover(s => s.text_color(t.foreground)).tooltip(folded ? `Show ${text}` : `Hide ${text}`)
+        .when(collapsed, el => el.justify_center())
+        .on_click((_e, cx) => {
+          folded ? this.groupFolded.delete(id) : this.groupFolded.add(id);
+          localStorage.setItem("spaces.groups.folded", JSON.stringify([...this.groupFolded]));
+          cx.notify();
+        })
+        .child(svg(`mods/workspace-chrome/chevron-${folded ? "right" : "down"}.svg`).size(10).flex_none())
+        .when(!collapsed, el => el.child(text.toUpperCase()));
+    };
     const divider = () => div().id("repo-divider").h(1).flex_none().mx(collapsed ? 6 : 12).my(6).bg(t.border);
+    // `list` = repos then directories; a folded group keeps its caption only (its rows get no position).
     const drawList = (list) => {
       const kids = [], pos = [];
-      list.forEach((r, n) => {
-        if (n === 0 || (!r.g && list[n - 1].g)) {
-          if (n > 0) kids.push(divider());
-          kids.push(caption(r.g ? "Repositories" : "Directories", n === 0));
-        }
-        pos.push(kids.length); kids.push(draw(r));
+      [["repos", "Repositories", true], ["dirs", "Directories", false]].forEach(([id, text, isGit]) => {
+        const idx = list.map((r, n) => [r, n]).filter(([r]) => Boolean(r.g) === isGit);
+        if (!idx.length) return;
+        if (kids.length) kids.push(divider());
+        kids.push(caption(id, text, !kids.length));
+        if (this.groupFolded.has(id)) return;
+        for (const [r, n] of idx) { pos[n] = kids.length; kids.push(draw(r)); }
       });
       return { kids, pos };
     };
