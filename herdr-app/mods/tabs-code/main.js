@@ -129,7 +129,7 @@ export default class Tabs extends View {
       ? Math.max(10, (root.traffic_lights[0] + 64) / settings().zoom - (sidebar?.hidden ? 0 : sidebar?.size?.px ?? 0))
       : 10;
     const panel = find(root, "panel"), body = find(root, "panel-body");
-    const enabled = [...(shared("workspace.panels") ?? ["files", "changes"]), "gh", "dev", "containers", "vault"];   // extra panels (mods/gh-watch, dev-run, containers-watch, vault-watch), always on
+    const enabled = [...(shared("workspace.panels") ?? ["files", "changes"]), "gh", "ado", "branches", "dev", "containers", "vault"];   // extra panels, always on
     this.syncPanel(space, panel, body, enabled);
     const panelButton = (id, label, icon) => {
       const on = panel && !panel.hidden && body?.active === id;
@@ -151,6 +151,8 @@ export default class Tabs extends View {
       .when(enabled.includes("files"), el => el.child(panelButton("files", "Files", "mods/files/file.svg")))
       .when(enabled.includes("changes"), el => el.child(panelButton("changes", "Changes", "mods/changes/changes.svg")))
       .child(panelButton("gh", "GitHub", "mods/gh-watch/gh.svg"))
+      .child(panelButton("ado", "ADO", "mods/ado-watch/ado.svg"))
+      .child(panelButton("branches", "Branches", "mods/workspace-chrome/branch.svg"))
       .child(panelButton("dev", "Dev", "mods/dev-run/dev.svg"))
       .child(panelButton("containers", "Docker", "mods/containers-watch/box.svg"))
       .child(panelButton("vault", "Vault", "mods/vault-watch/vault.svg"))

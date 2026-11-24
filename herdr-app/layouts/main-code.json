@@ -160,6 +160,20 @@
                       }
                     },
                     {
+                      "id": "ado",
+                      "type": "block",
+                      "content": {
+                        "mod": "ado-watch"
+                      }
+                    },
+                    {
+                      "id": "branches",
+                      "type": "block",
+                      "content": {
+                        "mod": "branches-code"
+                      }
+                    },
+                    {
                       "id": "dev",
                       "type": "block",
                       "content": {

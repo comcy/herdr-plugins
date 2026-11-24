@@ -7,7 +7,7 @@ Small plugins for [Herdr](https://herdr.dev) (tested with 0.9.5).
 | [`gh-watch`](gh-watch) | Live GitHub Actions runs / open PRs popup with spinner |
 | [`ado-watch`](ado-watch) | Live Azure DevOps pipeline runs / active PRs popup with spinner |
 
-| [`herdr-app/`](herdr-app) | Mods + layout for the native herdr-app (spaces grouping, gh-watch dialog, editor/browser menu) |
+| [`herdr-app/`](herdr-app) | Mods + layout for native herdr-app (spaces grouping, GitHub dialog/panel, Azure DevOps and Branches panels, editor/browser menu) |
 
 Install from a clone (`link`) or straight from GitHub (`install owner/repo/subdir`):
 
