@@ -101,11 +101,12 @@ const join = (first, ...rest) => {
   const root = cleanPath(first), suffix = rest.map((part) => String(part).replace(/^[\\/]+|[\\/]+$/g, "")).filter(Boolean).join("/");
   return suffix ? `${root === "/" ? "" : root}/${suffix}` : root;
 };
+const branchPath = (branch) => branch.split("/").map(branchSlug);
 const worktreePath = (repo, branch) => {
   const root = repo.bareLayout ? repo.repoRoot
     : repo.isBare ? join(parent(repo.repoRoot), repo.name)
       : join(parent(repo.repoRoot), `${repo.name}.worktrees`);
-  return join(root, branchSlug(branch));
+  return join(root, ...branchPath(branch));
 };
 
 export async function checkoutBranch(repo, target, on, exec) {

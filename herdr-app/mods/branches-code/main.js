@@ -366,7 +366,7 @@ export default class Branches extends View {
       .when(Boolean(repo), (el) => el.children([this.section("local", "LOCAL", local, t), this.section("remote", "REMOTE", remote, t)]));
     return v_flex().id("branches-code").size_full().min_h(0).text_size(13).rounded(10).overflow_hidden().bg(t.background).border_1().border_color(t.border)
       .child(h_flex().gap(6).items_center().h(42).flex_none().px(10).border_b(1).border_color(t.border)
-        .child(div().flex_none().text_color(t.foreground).child("Branches"))
+        .child(div().flex_none().text_color(t.foreground).child("git"))
         .child(div().flex_1().min_w(0).truncate().text_size(11.5).text_color(t.dim).child(repo ? `${repo.name} · ${branchName}` : this.where().cwd ?? ""))
         .child(div().id("branches-scratch").flex_none().px(5).rounded(4).text_size(11).text_color(canScratch ? t.muted : t.dim)
           .when(canScratch, (el) => el.cursor_pointer().hover((s) => s.bg(t.hover).text_color(t.foreground)).on_click((_e, cx) => this.scratch(cx)))

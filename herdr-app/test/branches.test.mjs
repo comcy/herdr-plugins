@@ -73,7 +73,7 @@ await fixture(async (tmp) => {
   const worktreeTarget = repo.branches.remote.find((b) => b.remoteRef === "origin/feature/worktree");
   assert.ok(worktreeTarget);
   const worktree = await createWorktree(repo, worktreeTarget, null, execGit);
-  assert.equal(worktree.path, join(tmp, "repo.worktrees", "feature-worktree"));
+  assert.equal(worktree.path, join(tmp, "repo.worktrees", "feature", "worktree"));
   assert.equal(git(worktree.path, ["branch", "--show-current"]), "feature/worktree");
   assert.equal(git(worktree.path, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]), "origin/feature/worktree");
   const result = await checkoutBranch(repo, target, null, execGit);
@@ -98,7 +98,7 @@ await fixture(async (tmp) => {
   const project = join(tmp, "project"), barePath = join(project, ".bare"), seed = join(tmp, "seed");
   mkdirSync(project, { recursive: true });
   initRepo(seed);
-  git(seed, ["switch", "-q", "-c", "feature/bare"]);
+  git(seed, ["switch", "-q", "-c", "features/some-test-workztree"]);
   writeFileSync(join(seed, "bare.txt"), "bare feature\n");
   git(seed, ["add", "bare.txt"]);
   git(seed, ["commit", "-qm", "bare feature"]);
@@ -112,14 +112,16 @@ await fixture(async (tmp) => {
 
   const repo = await inspectRepository(barePath, null, execGit);
   assert.equal(repo.worktreeMode, true);
-  const target = repo.branches.remote.find((b) => b.remoteRef === "origin/feature/bare");
+  assert.equal(repo.bareLayout, true);
+  assert.equal(repo.repoRoot, project);
+  const target = repo.branches.remote.find((b) => b.remoteRef === "origin/features/some-test-workztree");
   assert.ok(target);
   const result = await checkoutBranch(repo, target, null, execGit);
-  assert.equal(result.path, join(project, "feature-bare"));
+  assert.equal(result.path, join(project, "features", "some-test-workztree"));
   assert.equal(result.open, true);
   assert.equal(result.created, true);
-  assert.equal(git(result.path, ["branch", "--show-current"]), "feature/bare");
-  assert.equal(git(barePath, ["config", "--get", "branch.feature/bare.remote"]), "origin");
+  assert.equal(git(result.path, ["branch", "--show-current"]), "features/some-test-workztree");
+  assert.equal(git(barePath, ["config", "--get", "branch.features/some-test-workztree.remote"]), "origin");
   const localMain = repo.branches.local.find((branch) => branch.branch === "main");
   const localResult = await createWorktree(repo, localMain, null, execGit);
   assert.equal(localResult.path, join(project, "main"));
@@ -147,14 +149,14 @@ await fixture(async (tmp) => {
   git(repoPath, ["branch", "feature/existing"]);
   const repo = await inspectRepository(repoPath, null, execGit);
   const existing = await createWorktree(repo, { kind: "local", branch: "feature/existing" }, null, execGit);
-  assert.equal(existing.path, join(tmp, "repo.worktrees", "feature-existing"));
+  assert.equal(existing.path, join(tmp, "repo.worktrees", "feature", "existing"));
   assert.equal(git(existing.path, ["branch", "--show-current"]), "feature/existing");
   assert.equal(git(repoPath, ["branch", "--show-current"]), "main");
   await assert.rejects(createWorktree(repo, { kind: "local", branch: "feature/existing" }, null, execGit), /already checked out/);
 
   const baseCommit = git(repoPath, ["rev-parse", "HEAD"]);
   const fresh = await createWorktree(repo, { kind: "new", branch: "feature/dialog" }, null, execGit);
-  assert.equal(fresh.path, join(tmp, "repo.worktrees", "feature-dialog"));
+  assert.equal(fresh.path, join(tmp, "repo.worktrees", "feature", "dialog"));
   assert.equal(git(fresh.path, ["branch", "--show-current"]), "feature/dialog");
   assert.equal(git(fresh.path, ["rev-parse", "HEAD"]), baseCommit);
   assert.equal(git(repoPath, ["branch", "--show-current"]), "main");

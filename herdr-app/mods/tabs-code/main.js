@@ -152,7 +152,7 @@ export default class Tabs extends View {
       .when(enabled.includes("changes"), el => el.child(panelButton("changes", "Changes", "mods/changes/changes.svg")))
       .child(panelButton("gh", "GitHub", "mods/gh-watch/gh.svg"))
       .child(panelButton("ado", "ADO", "mods/ado-watch/ado.svg"))
-      .child(panelButton("branches", "Branches", "mods/workspace-chrome/branch.svg"))
+      .child(panelButton("branches", "git", "mods/workspace-chrome/branch.svg"))
       .child(panelButton("dev", "Dev", "mods/dev-run/dev.svg"))
       .child(panelButton("containers", "Docker", "mods/containers-watch/box.svg"))
       .child(panelButton("vault", "Vault", "mods/vault-watch/vault.svg"))
