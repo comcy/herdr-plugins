@@ -146,6 +146,13 @@
                       }
                     },
                     {
+                      "id": "explorer",
+                      "type": "block",
+                      "content": {
+                        "mod": "git-explorer"
+                      }
+                    },
+                    {
                       "id": "changes",
                       "type": "block",
                       "content": {
